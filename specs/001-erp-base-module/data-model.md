@@ -58,6 +58,71 @@ Objeto de configuración cargado al arrancar que adapta el módulo base en un m�
 | statusLifecycle | object | Estados ordenados y transiciones permitidas para documentos, p. ej., `{ statuses: ["cotización", "pedido", "facturado"], transitions: { cotización: ["pedido"], pedido: ["facturado"], facturado: [] } }` | Opcional |
 | theme | object | Opciones de marca, p. ej., `{ accentColor: "#0f62fe" }`; aplicado como propiedad personalizada de CSS en todo el marco del espacio de trabajo | Opcional; accentColor debe ser un color CSS válido o retrocede al predeterminado |
 
+## Entidad: Warehouse (almacén)
+
+Representa un lugar físico donde se almacena inventario (p. ej., almacén central, bodega de tránsito, sucursal).
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único del almacén | Obligatorio, generado automáticamente |
+| code | string | Código o clave de negocio del almacén | Obligatorio, no vacío, único |
+| name | string | Nombre del almacén | Obligatorio, no vacío |
+| address | string | Dirección del almacén | Opcional |
+| description | string | Descripción corta o notas | Opcional |
+| active | boolean | Indica si el almacén puede recibir movimientos | Opcional; por defecto verdadero |
+| createdAt | string | Marca de tiempo de cuándo se creó el almacén | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización del almacén | Obligatorio |
+
+## Entidad: Lot (lote)
+
+Representa un lote de un artículo para dar trazabilidad y controlar vencimientos.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único del lote | Obligatorio, generado automáticamente |
+| entity_id | string | Identificador del artículo al que pertenece el lote | Obligatorio, debe referenciar el entity_id de una entidad existente |
+| lotNumber | string | Número o clave del lote | Obligatorio, no vacío; único por artículo |
+| manufactureDate | string | Fecha de fabricación en formato YYYY-MM-DD | Opcional, debe ser una fecha de calendario válida |
+| expiryDate | string | Fecha de vencimiento en formato YYYY-MM-DD | Opcional, debe ser una fecha de calendario válida y no anterior a manufactureDate |
+| createdAt | string | Marca de tiempo de cuándo se creó el lote | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización del lote | Obligatorio |
+
+## Entidad: DocumentLine (partida de documento)
+
+Representa una línea de un documento con el artículo, la cantidad y el precio, y el almacén que se afecta.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único de la partida | Obligatorio, generado automáticamente |
+| document_id | string | Identificador del documento al que pertenece la partida | Obligatorio, debe referenciar el id de un documento existente |
+| entity_id | string | Identificador del artículo de la partida | Obligatorio, debe referenciar el entity_id de una entidad existente |
+| warehouse_id | string | Almacén afectado por la partida | Opcional, debe referenciar el id de un almacén existente |
+| lot_id | string | Lote del artículo de la partida | Opcional, debe referenciar el id de un lote del mismo artículo |
+| quantity | number | Cantidad del artículo en la partida | Obligatorio, debe ser un entero positivo |
+| unitPrice | number | Precio o costo unitario del artículo | Opcional, debe ser un número no negativo |
+| discount | number | Descuento aplicado a la partida | Opcional, debe ser un número no negativo y no puede superar quantity × unitPrice |
+| notes | string | Notas u observaciones de la partida | Opcional |
+| createdAt | string | Marca de tiempo de cuándo se creó la partida | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización de la partida | Obligatorio |
+
+## Entidad: StockMovement (movimiento de inventario)
+
+Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un artículo se obtiene sumando sus movimientos y no se edita directamente.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único del movimiento | Obligatorio, generado automáticamente |
+| entity_id | string | Identificador del artículo movido | Obligatorio, debe referenciar el entity_id de una entidad existente |
+| warehouse_id | string | Almacén donde ocurre el movimiento | Obligatorio, debe referenciar el id de un almacén existente |
+| lot_id | string | Lote del artículo movido | Opcional, debe referenciar el id de un lote del mismo artículo |
+| document_id | string | Documento que origina el movimiento | Opcional, debe referenciar el id de un documento existente |
+| type | string | Tipo de movimiento: entrada, salida, traslado o ajuste | Obligatorio |
+| quantity | number | Cantidad movida | Obligatorio, debe ser un entero positivo (el signo lo determina el tipo) |
+| unitCost | number | Costo unitario del movimiento | Opcional, debe ser un número no negativo |
+| movementDate | string | Fecha del movimiento en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
+| notes | string | Notas u observaciones del movimiento | Opcional |
+| createdAt | string | Marca de tiempo de cuándo se creó el movimiento | Obligatorio |
+
 ## Reglas de ModuleConfig
 
 - La configuración se carga una vez al arrancar y se aplica en todas las pantallas.
@@ -90,6 +155,29 @@ Objeto de configuración cargado al arrancar que adapta el módulo base en un m�
 
 > Nota: el cálculo automático de totales (p. ej., `total = subtotal - descuento + impuesto`) queda como punto de extensión; el módulo base valida cada importe de forma independiente para evitar sorpresas por redondeo.
 
+### Almacén
+
+- Un almacén debe incluir un código y un nombre no vacíos.
+- El código del almacén debe ser único entre todos los almacenes.
+
+### Lote
+
+- Un lote debe referenciar un artículo existente mediante entity_id y debe incluir un número de lote no vacío, único por artículo.
+- La fecha de vencimiento, cuando está presente, no puede ser anterior a la fecha de fabricación.
+
+### Partida de documento
+
+- Una partida debe referenciar un documento existente y un artículo existente.
+- La cantidad debe ser un entero positivo.
+- Si se indica un lote, debe pertenecer al mismo artículo de la partida.
+
+### Movimiento de inventario
+
+- Un movimiento debe referenciar un artículo y un almacén existentes.
+- El tipo debe ser uno de: entrada, salida, traslado o ajuste.
+- Una salida no puede dejar el saldo del artículo en el almacén por debajo de cero.
+- Los movimientos no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
+
 ## Relaciones
 
 - Cada entidad se almacena independientemente y aparece como una única fila en la lista de entidades.
@@ -97,6 +185,12 @@ Objeto de configuración cargado al arrancar que adapta el módulo base en un m�
 - Cada documento pertenece exactamente a una entidad, vinculada por el entity_id de la entidad.
 - Cuando se elimina una entidad, todos los documentos que referencian su entity_id también se eliminan.
 - Las operaciones de búsqueda se realizan sobre los registros de entidad almacenados, incluyendo identidad fiscal, contacto y condiciones comerciales.
+- Cada partida pertenece exactamente a un documento y a un artículo (una entidad).
+- Cuando se elimina un documento, sus partidas también se eliminan.
+- Cada lote pertenece exactamente a un artículo (una entidad).
+- Cada movimiento de inventario referencia un artículo y un almacén, y opcionalmente un lote y un documento.
+- El saldo de un artículo por almacén (y por lote) es la suma de sus movimientos.
+- Una entidad que tenga movimientos de inventario no puede eliminarse, para conservar el historial del inventario.
 
 ## Notas de Extensibilidad
 
