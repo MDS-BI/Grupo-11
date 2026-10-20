@@ -1,66 +1,66 @@
-# ERP Software Base Module (Vite + Vanilla JS)
+# Módulo Base de Software ERP (Vite + Vanilla JS)
 
-Minimal single-page app serving as an Enterprise Resource Planning (ERP) software base module. It provides the common foundation for building custom ERP modules: master data management (Entities) and linked transactional documents (Documents) with create/edit/delete/search, validation, and browser localStorage persistence — using Vite and vanilla HTML, CSS, and JavaScript.
+Aplicación web de una sola página mínima que sirve como módulo base de un sistema ERP (Planificación de Recursos Empresariales). Proporciona la base común para construir módulos ERP personalizados: gestión de datos maestros (Entidades) y documentos transaccionales vinculados (Documentos) con creación/edición/eliminación/búsqueda, validación y persistencia en el `localStorage` del navegador, usando Vite y HTML, CSS y JavaScript puro (vanilla).
 
-The user interface is fully in **Spanish** (default terms: Entidad / Documento; module name: Módulo Base ERP), including labels, validation messages, empty states, and dialogs.
+La interfaz de usuario está completamente en **español** (términos predeterminados: Entidad / Documento; nombre del módulo: Módulo Base ERP), incluyendo etiquetas, mensajes de validación, estados vacíos y diálogos.
 
-Entities carry standard ERP master-data fields (name, code, tax ID, email, phone, address, category, target date, credit limit, payment terms). Documents use series + folio numbering and carry a monetary breakdown (subtotal, discount, tax, total), currency, payment terms, notes, quantity, dates, and status.
+Las Entidades cuentan con los campos estándar de datos maestros de un ERP (nombre, código, RFC/NIF, correo electrónico, teléfono, dirección, categoría, fecha objetivo, límite de crédito, condiciones de pago). Los Documentos usan numeración por serie + folio e incluyen un desglose monetario (subtotal, descuento, impuesto, total), moneda, condiciones de pago, notas, cantidad, fechas y estado.
 
-The app presents itself as a coherent ERP workspace:
+La aplicación se presenta como un espacio de trabajo ERP coherente:
 
-- **Workspace shell** — every screen lives inside a branded chrome: a top bar with a logo (an SVG monogram derived from the module name) and module name, plus a persistent sidebar of module buttons (Panel, Entidades, Documentos, Búsqueda). The active module is highlighted (`aria-current="page"`), and the sidebar collapses to an icon rail on narrow viewports.
-- **Home dashboard** — the entry screen offers quick-action buttons for key ERP tasks (new entity, new document, open management areas, find records) and live statistic cards showing record counts.
-- **Design tokens** — styling is driven by CSS custom properties in `src/styles.css`, so branding changes apply globally.
+- **Estructura del espacio de trabajo (shell)** — cada pantalla vive dentro de un marco con identidad visual: una barra superior con un logotipo (un monograma SVG derivado del nombre del módulo) y el nombre del módulo, más una barra lateral persistente con los botones de los módulos (Panel, Entidades, Documentos, Búsqueda). El módulo activo se resalta (`aria-current="page"`), y la barra lateral se colapsa en una railing de iconos en pantallas estrechas.
+- **Panel de inicio** — la pantalla de entrada ofrece botones de acción rápida para las tareas clave del ERP (nueva entidad, nuevo documento, abrir áreas de gestión, buscar registros) y tarjetas de estadísticas en vivo que muestran el número de registros.
+- **Tokens de diseño** — los estilos se controlan mediante propiedades personalizadas de CSS en `src/styles.css`, por lo que los cambios de marca se aplican globalmente.
 
-## Setup
+## Instalación
 
-Install dependencies and run the dev server:
+Instala las dependencias y ejecuta el servidor de desarrollo:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 (or the URL Vite prints).
+Abre http://localhost:5173 (o la URL que imprima Vite).
 
-## Tests
+## Pruebas
 
-Run the full test suite (unit + integration) with:
+Ejecuta la suite completa de pruebas (unitarias + de integración) con:
 
 ```bash
 npm test
 ```
 
-Or a one-off run without watch mode:
+O una ejecución puntual sin modo watch:
 
 ```bash
 npx vitest run
 ```
 
-## Building Custom Modules
+## Construcción de módulos personalizados
 
-Custom ERP modules built on this base define:
+Los módulos ERP personalizados construidos sobre esta base definen:
 
-- What an **Entity** represents (e.g., customer, product, asset) plus domain-specific fields.
-- What a **Document** represents (e.g., order, invoice, contract).
-- Module-specific labels and validation rules.
+- Qué representa una **Entidad** (por ejemplo, cliente, producto, activo) más los campos propios del dominio.
+- Qué representa un **Documento** (por ejemplo, pedido, factura, contrato).
+- Etiquetas y reglas de validación específicas del módulo.
 
-The base module handles identity generation, timestamps, referential integrity between entities and documents, cascade deletion, navigation, and search. See `specs/001-erp-base-module/` for the full specification.
+El módulo base se encarga de la generación de identidades, las marcas de tiempo, la integridad referencial entre entidades y documentos, el borrado en cascada, la navegación y la búsqueda. Consulta `specs/001-erp-base-module/` para la especificación completa.
 
-## Tailoring via Configuration
+## Personalización mediante configuración
 
-All tailoring lives in one place: the `userConfig` object at the top of `src/module-config.js`. Developers edit this single export; no core code changes are required. Available knobs:
+Toda la personalización se concentra en un solo lugar: el objeto `userConfig` en la parte superior de `src/module-config.js`. Los desarrolladores editan esta única exportación; no es necesario modificar el código principal. Ajustes disponibles:
 
-- `moduleName` — display name shown in the top bar, dashboard, and document title; also derives the logo monogram.
-- `labels` — rename Entity/Document terms across every screen, including sidebar buttons, quick actions, forms, and messages. Spanish articles and agreements (el/la, seleccionado/a) are derived from the first word of each configured term.
-- `customFields` — declare extra fields per record type with `target` (`entity` or `document`), `key`, `label`, `type` (`text`, `number`, `date`, or `select`), optional `required`, and `options` for selects. Keys must not collide with base field names (see `specs/001-erp-base-module/data-model.md`). Values persist alongside records and appear in search results.
-- `statusLifecycle` — restrict document statuses to a configured list of `statuses` with permitted `transitions` between them. Without it, status stays a free-form field.
-- `theme.accentColor` — a hex color (e.g., `"#0f62fe"`) applied across the shell as highlights and primary controls. Invalid values fall back to the default.
+- `moduleName` — nombre visible que se muestra en la barra superior, el panel y el título del documento; también se deriva de él el monograma del logotipo.
+- `labels` — renombra los términos Entidad/Documento en todas las pantallas, incluidos los botones de la barra lateral, las acciones rápidas, los formularios y los mensajes. Los artículos y las concordancias del español (el/la, seleccionado/a) se derivan de la primera palabra de cada término configurado.
+- `customFields` — declara campos adicionales por tipo de registro con `target` (`entity` o `document`), `key`, `label`, `type` (`text`, `number`, `date` o `select`), `required` opcional, y `options` para los select. Las claves no deben coincidir con nombres de campos base (consulta `specs/001-erp-base-module/data-model.md`). Los valores persisten junto a los registros y aparecen en los resultados de búsqueda.
+- `statusLifecycle` — restringe los estados de los documentos a una lista configurada de `statuses` con las `transitions` permitidas entre ellos. Si no se define, el estado permanece como un campo de texto libre.
+- `theme.accentColor` — un color hexadecimal (por ejemplo, `"#0f62fe"`) aplicado en todo el shell como resaltado y para los controles primarios. Los valores no válidos recurren al valor predeterminado.
 
-If the configuration is invalid (unknown types, bad keys, transitions referencing unknown statuses, non-hex accent colors), the app shows the problems in a banner and falls back to defaults instead of breaking.
+Si la configuración es inválida (tipos desconocidos, claves incorrectas, transiciones que referencian estados desconocidos, colores de acento no hexadecimales), la aplicación muestra los problemas en una banda de advertencia y recurre a los valores predeterminados en lugar de fallar.
 
-## Notes
+## Notas
 
-- Data is persisted to `localStorage` under the keys `erp_base_module:entities` and `erp_base_module:documents`.
-- Deleting an entity also deletes its documents (cascade).
-- This project intentionally uses vanilla HTML, CSS, and JavaScript for simplicity.
+- Los datos se guardan en `localStorage` bajo las claves `erp_base_module:entities` y `erp_base_module:documents`.
+- Al eliminar una entidad, sus documentos también se eliminan (borrado en cascada).
+- Este proyecto usa intencionalmente HTML, CSS y JavaScript puro (vanilla) por simplicidad.
