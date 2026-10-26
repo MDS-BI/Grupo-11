@@ -1,59 +1,53 @@
 # Implementation Plan: [FEATURE]
 
-**Branch**: `[###-gestion-inventario]` | **Date**: [DATE] | **Spec**: [link]
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 
-**Input**: Feature specification from `/specs/[###-gestion-inventario]/spec.md`
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command; its definition describes the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research.
-Ejemplo del dominio: gestión de almacenes, lotes y movimientos de stock
-(entradas/salidas/traslados/ajustes) sobre el módulo base ERP.]
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
 <!--
-  Contexto técnico del módulo base ERP (Vite + Vanilla JS + Vitest, localStorage).
-  Ajustar versión de dependencias y presupuestos según la feature.
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
 -->
 
-**Language/Version**: JavaScript ES2022 (sin framework, sin backend)
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
 
-**Primary Dependencies**: Vite ^8.2.1 (dev server + build)
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
 
-**Storage**: `localStorage` del navegador (claves `erp_base_module:entities` y `erp_base_module:documents`)
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
-**Testing**: Vitest ^4.1.10 + jsdom ^30.0.1 (`npm test` / `npx vitest run`)
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
 
-**Target Platform**: SPA web en navegador (moderna, evergreen)
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 
-**Project Type**: web-app frontend-only (módulo base ERP personalizable)
+**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
 
-**Performance Goals**: [domain-specific, e.g., <200ms p95 en búsquedas de inventario, listados de stock <100ms o NEEDS CLARIFICATION]
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
 
-**Constraints**: [domain-specific, e.g., saldo de stock nunca negativo, movimientos inmutables, corrección solo vía ajuste o NEEDS CLARIFICATION]
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
 
-**Scale/Scope**: [domain-specific, e.g., 10k movimientos de stock, 1k artículos, 5 almacenes, 15 pantallas o NEEDS CLARIFICATION]
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Gates basados en `.specify/memory/constitution.md` (v1.0.0):
-
-1. **Code Quality & Maintainability** — código legible, modular, funciones pequeñas.
-2. **Test-First & Verification** — tests unitarios + integración; nada se da por completo sin tests verdes.
-3. **User Experience Consistency** — patrones consistentes de layout/feedback/estados vacíos; accesibilidad obligatoria; UI en español.
-4. **Performance & Reliability** — presupuestos de performance; evitar round-trips y re-renders innecesarios.
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-gestion-inventario]/
+specs/[###-feature]/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -64,36 +58,46 @@ specs/[###-gestion-inventario]/
 
 ### Source Code (repository root)
 <!--
-  Layout real del módulo base ERP. Las features de logística/inventario
-  pueden añadir componentes (ej. warehouse-list.js, lot-list.js,
-  stock-movement-form.js) bajo src/components/.
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
 -->
 
 ```text
-index.html
-
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── main.js
-├── app.js
-├── storage.js
-├── module-config.js
-├── styles.css
-└── components/
-    ├── shell.js
-    ├── dashboard.js
-    ├── entity-list.js
-    ├── entity-form.js
-    ├── document-list.js
-    ├── document-form.js
-    ├── custom-fields.js
-    └── search-bar.js
+├── models/
+├── services/
+├── cli/
+└── lib/
 
 tests/
-├── unit/
-│   ├── storage.test.js
-│   └── module-config.test.js
-└── integration/
-    └── [pruebas por journey: CRUD entidades, documentos, búsqueda, etc.]
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real
@@ -105,5 +109,5 @@ directories captured above]
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., Nuevo módulo de almacenes] | [necesidad de gestionar stock por ubicación] | [por qué no basta con la categoría de Entidad] |
-| [e.g., Servicio de cálculo de stock] | [saldo derivado de movimientos inmutables] | [por qué no basta con editar el saldo del artículo] |
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
