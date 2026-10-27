@@ -12,16 +12,46 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
 ### Historia de Usuario 1 - Crear y organizar entidades (Prioridad: P1)
-Como usuario de negocio, quiero crear entradas de entidad con detalles claros para poder construir y mantener los datos maestros del módulo.
+Como usuario de negocio, quiero crear entradas de entidad con detalles claros para poder
+construir y mantener los datos maestros del módulo.
 
-**Por qué esta prioridad**: Este es el valor central del producto porque, sin crear entidades, el resto de la experiencia no puede aportar valor.
+Por qué esta prioridad: Este es el valor central del producto porque, sin crear entidades,
+el resto de la experiencia no puede aportar valor.
 
-**Prueba Independiente**: Un usuario puede abrir el módulo, añadir una nueva entidad y verla aparecer en la lista.
+Prueba Independiente: Un usuario puede abrir el módulo, añadir una nueva entidad y verla
+aparecer en la lista.
 
-**Escenarios de Aceptación**:
+Escenarios de Aceptación:
+1. Dado que un usuario está viendo la lista de entidades, cuando crea una nueva entidad con un
+   nombre y un código, entonces la nueva entidad se guarda y aparece en la lista.
+2. Dado que un usuario está creando una entidad, cuando deja la información obligatoria en
+   blanco, entonces el sistema impide guardar y explica qué se necesita.
+3. Dado que ya existe una entidad con un código determinado, cuando el usuario intenta crear
+   otra con el mismo código, entonces el sistema impide guardar e indica que el código está
+   duplicado.
+4. Dado que el usuario ingresa texto con HTML o scripts en un campo, cuando guarda y la
+   entidad se muestra, entonces el contenido se escapa y no se ejecuta.
+5. Dado que la entidad tiene categoría, cuando el usuario la clasifica, entonces elige entre
+   los valores definidos en la configuración (no texto libre).
 
-1. **Dado** que un usuario está viendo la lista de entidades, **cuando** crea una nueva entidad con un nombre y un código, **entonces** la nueva entidad se guarda y aparece en la lista.
-2. **Dado** que un usuario está creando una entidad, **cuando** deja la información obligatoria en blanco, **entonces** el sistema impide guardar y explica qué se necesita.
+Datos involucrados (para el MER y data-model.md):
+- Tabla/entidad: Entidad
+- Campos: entity_id (autogenerado), nombre (obligatorio), código (obligatorio, único),
+  descripción, categoría, fecha objetivo (opcional)
+- Relación: una Entidad tiene cero o más Documentos (1:N, eliminación en cascada)
+
+Decisión de datos y justificación:
+- El código de negocio es único porque identifica el registro de forma legible y evita
+  duplicados en los datos maestros.
+- La categoría usa valores controlados para evitar clasificaciones inconsistentes y sesgos
+  en análisis posteriores.
+- Los datos se guardan en localStorage por ser un MVP sin servidor; esto limita la
+  seguridad y la persistencia (ver issue de decisiones).
+
+Riesgos de datos:
+- Contenido malicioso (XSS) → mitigado con escape de HTML al renderizar.
+- Datos duplicados o incompletos → mitigados con validaciones de obligatoriedad y unicidad.
+- Datos reales sensibles en localStorage → usar solo datos ficticios en el MVP.
 
 ---
 
