@@ -70,22 +70,22 @@ Como usuario de negocio, quiero actualizar o eliminar entidades cuando cambien l
 
 ---
 
-### Historia de Usuario 3 - Panel de inicio con acciones rápidas y estadísticas de registros (Prioridad: P1)
+### Historia de Usuario 3 - Inicio de una página con botones sencillos para acceder eficazmente a las tareas (Prioridad: P1)
 
-Como usuario de negocio, quiero aterrizar en un panel estilo ERP con botones de acción rápida claramente etiquetados para las tareas clave y totales de registros de un vistazo al abrir la aplicación, para poder empezar a trabajar de inmediato.
+Como usuario de negocio, quiero el inicio de una página con botones sencillos que me permitan acceder eficazmente a las distintas tareas, para realizar mi trabajo sin perder tiempo buscando funciones.
 
-**Por qué esta prioridad**: El panel es el punto de entrada de la aplicación. Nada más puede alcanzarse sin él, y las acciones rápidas son la ruta más rápida hacia cada flujo de trabajo central.
+**Por qué esta prioridad**: La pantalla de inicio es el punto de entrada de la aplicación. Nada más puede alcanzarse sin ella, y los botones sencillos son la ruta más rápida hacia cada flujo de trabajo central.
 
-**Prueba Independiente**: Un usuario abre la aplicación, ve un panel con múltiples botones de acción rápida y estadísticas de registros, inicia una nueva entidad o documento con un solo clic y ve estadísticas que reflejan los datos almacenados.
+**Prueba Independiente**: Un usuario abre la aplicación, ve una pantalla con múltiples botones sencillos claramente etiquetados y estadísticas de registros, inicia una nueva entidad o documento con un solo clic y ve estadísticas que reflejan los datos almacenados.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario abre la aplicación, **cuando** la aplicación carga, **entonces** se muestra el panel de inicio con al menos cuatro botones de acción rápida claramente etiquetados que cubren las tareas ERP clave: crear una nueva entidad, crear un nuevo documento, abrir la gestión de entidades y buscar registros.
-2. **Dado** que se muestra el panel, **cuando** el usuario activa la acción de nueva entidad, **entonces** la aplicación abre el área de gestión de entidades con un formulario vacío listo para introducir datos.
-3. **Dado** que se muestra el panel, **cuando** el usuario activa la acción de nuevo documento, **entonces** la aplicación abre el área de gestión de documentos con un formulario vacío listo para introducir datos.
-4. **Dado** que se muestra el panel, **cuando** el usuario activa la acción de buscar registros, **entonces** la aplicación abre la pantalla de búsqueda con el campo de búsqueda enfocado.
-5. **Dadas** entidades y documentos almacenados, **cuando** el usuario ve el panel, **entonces** las tarjetas de estadísticas muestran el recuento actual de entidades y documentos.
-6. **Dado** que el usuario crea o elimina registros en otra parte de la aplicación, **cuando** vuelve al panel, **entonces** las estadísticas reflejan el cambio.
+1. **Dado** que el usuario abre la aplicación, **cuando** la aplicación carga, **entonces** se muestra la pantalla de inicio con al menos cuatro botones sencillos claramente etiquetados que cubren las tareas ERP clave: crear una nueva entidad, crear un nuevo documento, abrir la gestión de entidades y buscar registros.
+2. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nueva entidad, **entonces** la aplicación abre el área de gestión de entidades con un formulario vacío listo para introducir datos.
+3. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo documento, **entonces** la aplicación abre el área de gestión de documentos con un formulario vacío listo para introducir datos.
+4. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de buscar registros, **entonces** la aplicación abre la pantalla de búsqueda con el campo de búsqueda enfocado.
+5. **Dadas** entidades y documentos almacenados, **cuando** el usuario ve la pantalla de inicio, **entonces** las tarjetas de estadísticas muestran el recuento actual de entidades y documentos.
+6. **Dado** que el usuario crea o elimina registros en otra parte de la aplicación, **cuando** vuelve a la pantalla de inicio, **entonces** las estadísticas reflejan el cambio.
 
 ---
 
