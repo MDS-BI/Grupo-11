@@ -209,35 +209,61 @@ Como usuario de negocio, quiero registrar detalles de documentos para una entida
 
 ### Historia de Usuario 11 - Buscar entidades en una pantalla dedicada (Prioridad: P2)
 
-Como usuario de negocio, quiero una pantalla de búsqueda dedicada para encontrar rápidamente entidades sin que los formularios de edición saturen la vista.
+Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar productos (entidades) por SKU, nombre, categoría o ubicación sin que los formularios de edición saturen la vista.
 
-**Por qué esta prioridad**: La recuperación rápida es valiosa cuando el conjunto de datos crece, y una pantalla separada mantiene enfocada la experiencia de gestión, pero la búsqueda no es necesaria para la gestión básica.
+**Por qué esta prioridad**: La recuperación rápida es valiosa cuando el catálogo de productos crece, y una pantalla separada mantiene enfocada la experiencia de gestión, pero la búsqueda no es necesaria para la gestión básica.
 
-**Prueba Independiente**: Un usuario puede abrir la pantalla de búsqueda desde la barra lateral o una acción rápida, introducir un término de búsqueda y ver solo las entidades coincidentes.
+**Prueba Independiente**: Un usuario puede abrir la pantalla de búsqueda desde la barra lateral o una acción rápida, introducir un SKU o nombre y ver solo los productos coincidentes con su stock actual.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente, **entonces** solo se muestran las entidades coincidentes.
+1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente con el SKU, nombre, categoría o ubicación en bodega, **entonces** solo se muestran los productos coincidentes.
 2. **Dada** una búsqueda sin coincidencias, **cuando** el usuario envía la búsqueda, **entonces** se muestra un estado vacío claro y puede volver a intentarlo.
-3. **Dadas** cientos de entidades almacenadas, **cuando** el usuario busca desde la pantalla de búsqueda, **entonces** los resultados aparecen con prontitud sin retraso perceptible.
+3. **Dados** 500 o más productos almacenados, **cuando** el usuario busca desde la pantalla de búsqueda, **entonces** los resultados aparecen con prontitud sin retraso perceptible.
 4. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio.
+5. **Dados** resultados de búsqueda, **cuando** se muestran, **entonces** cada producto indica su stock actual y se marca visualmente si está por debajo del stock mínimo.
+6. **Dada** la pantalla de búsqueda, **cuando** el usuario combina filtros (categoría, almacén y "solo stock bajo"), **entonces** se muestran únicamente los productos que cumplen todos los filtros aplicados.
+7. **Dado** que el usuario llega desde la barra lateral o desde la acción rápida de buscar registros del panel, **cuando** se abre la pantalla, **entonces** el campo de búsqueda queda enfocado.
+8. **Dado** un resultado de búsqueda, **cuando** el usuario lo selecciona, **entonces** se muestra el detalle del producto en modo solo lectura, y la edición permanece en la pantalla de gestión.
+9. **Dado** que el usuario busca un término con distinta capitalización, tildes o solo una parte del SKU, **cuando** envía la búsqueda, **entonces** se devuelven igualmente los productos coincidentes.
+10. **Dado** que el usuario introduce HTML o scripts como término de búsqueda, **cuando** se muestran el término o los resultados, **entonces** el contenido se escapa y no se ejecuta.
+11. **Dado** que el usuario envía la búsqueda vacía, **cuando** se procesa, **entonces** se muestran todos los productos o se indica que debe ingresar un término, de forma consistente.
 
 ---
 
 ### Historia de Usuario 12 - Configurar el ciclo de vida de estados de documentos (Prioridad: P2)
 
-Como desarrollador de módulos, quiero definir los estados permitidos de los documentos y las transiciones permitidas, para que los documentos sigan el ciclo de vida del dominio en lugar de aceptar texto de estado arbitrario.
+Como jefe de logística, quiero que cada movimiento de inventario (documento) siga un ciclo de estados controlado, para que no se pueda marcar como recibido un movimiento que nunca fue despachado y el stock refleje la realidad.
 
-**Por qué esta prioridad**: Los módulos reales necesitan ciclos de vida controlados (p. ej., cotización → pedido → facturado), pero el estado de texto libre sigue siendo aceptable para extensiones simples, así que esto mejora la base sin ser necesario para la adaptación básica. Esta historia depende del perfil de configuración (Historia de Usuario 5).
+**Por qué esta prioridad**: Los módulos de logística necesitan ciclos de vida controlados, y el stock solo es confiable si cambia en el momento correcto. El estado de texto libre sigue siendo aceptable para extensiones simples, así que esto mejora la base sin ser necesario para la adaptación básica. Esta historia depende del perfil de configuración (Historia de Usuario 5).
 
-**Prueba Independiente**: Un desarrollador configura un ciclo de vida cotización→pedido→facturado; el control de estado ofrece solo estados siguientes válidos, las transiciones inválidas se rechazan con una explicación, y el estado es visible de un vistazo en las listas.
+**Prueba Independiente**: Un desarrollador configura el ciclo de un traslado (Solicitado → Despachado → En tránsito → Recibido); el control de estado ofrece solo estados siguientes válidos, las transiciones inválidas se rechazan con una explicación, el estado es visible de un vistazo en las listas y el stock cambia únicamente al despachar y al recibir.
+
+**Ciclos de vida de referencia**:
+
+- **Orden de compra**: Borrador → Aprobada → Enviada por proveedor → Recibida → Cerrada; Cancelada posible antes de Recibida.
+- **Traslado entre almacenes**: Solicitado → Despachado → En tránsito → Recibido; Cancelado posible antes de Despachado.
+- **Salida / despacho a cliente**: Pendiente → Preparado → Despachado → Entregado; Cancelado posible antes de Despachado.
+
+**Regla de stock (única fuente de verdad)**:
+
+- El stock **baja al pasar a Despachado** (salidas y traslados, en el almacén de origen), nunca antes. Una cancelación durante Solicitado, Pendiente o Preparado no afecta el stock, evitando descuentos incorrectos y reingresos manuales.
+- El stock **sube al pasar a Recibido / Recibida** (órdenes de compra y traslados, en el almacén de destino).
+- Una vez Despachado, el movimiento ya no puede cancelarse.
 
 **Escenarios de Aceptación**:
 
 1. **Dado** un ciclo de vida configurado, **cuando** el usuario edita el estado de un documento, **entonces** solo se ofrecen los estados alcanzables mediante transiciones permitidas.
-2. **Dado** que se intenta una transición inválida por cualquier vía, **cuando** se envía, **entonces** el sistema la rechaza con una explicación clara.
-3. **Dado** un ciclo de vida configurado, **cuando** el usuario ve listas o detalles de documentos, **entonces** el estado actual es identificable de un vistazo.
+2. **Dado** que se intenta una transición inválida por cualquier vía (p. ej., de Borrador a Recibida), **cuando** se envía, **entonces** el sistema la rechaza con una explicación clara.
+3. **Dado** un ciclo de vida configurado, **cuando** el usuario ve listas o detalles de documentos, **entonces** el estado actual es identificable de un vistazo mediante una etiqueta visual.
 4. **Dado** que no hay ciclo de vida configurado, **cuando** se editan documentos, **entonces** el estado permanece como texto libre igual que en el módulo base sin modificar.
+5. **Dado** un movimiento de salida o traslado en estado Preparado, **cuando** el usuario lo cancela, **entonces** el stock de los productos no cambia.
+6. **Dado** un movimiento de salida o traslado, **cuando** pasa a Despachado, **entonces** el stock del producto disminuye en la cantidad indicada en el almacén de origen.
+7. **Dado** un traslado o una orden de compra, **cuando** pasa a Recibido / Recibida, **entonces** el stock del producto aumenta en la cantidad indicada en el almacén de destino.
+8. **Dado** un movimiento ya Despachado, **cuando** el usuario intenta cancelarlo, **entonces** el sistema lo rechaza con una explicación clara que indica que, una vez entregado o recibido, debe registrarse una devolución (Historia de Usuario 14).
+9. **Dado** un movimiento en un estado final (Cerrada, Cancelado, Entregado), **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
+10. **Dado** un despacho cuya cantidad supera el stock disponible, **cuando** el usuario intenta pasarlo a Despachado, **entonces** el sistema lo rechaza e indica el stock disponible.
+11. **Dado** un cambio de estado, **cuando** se guarda, **entonces** se registra la fecha del cambio (y opcionalmente el usuario) para mantener un historial del movimiento.
 
 ---
 
@@ -257,6 +283,46 @@ Como usuario de negocio, quiero un espacio de trabajo estilo ERP consistente, co
 4. **Dado** que la ventana gráfica es estrecha, **cuando** se usa la aplicación en una pantalla pequeña, **entonces** la barra lateral se contrae a una columna de iconos manteniéndose utilizable y etiquetada de forma accesible.
 5. **Dada** una configuración que define un color de acento, **cuando** cualquier pantalla carga, **entonces** el marco lo usa consistentemente para resaltados y controles principales; sin valor configurado o con un valor inválido, se usan los valores predeterminados integrados sin errores.
 6. **Dado** que el usuario navega entre módulos mediante la barra lateral, **cuando** inspecciona sus datos después, **entonces** todas las entidades y documentos almacenados permanecen intactos.
+
+---
+
+### Historia de Usuario 14 - Registrar devoluciones de movimientos (Prioridad: P2)
+
+Como encargado de recepción, quiero registrar la devolución de un movimiento ya entregado o recibido, para que el stock se corrija con trazabilidad en lugar de editar cantidades a mano.
+
+**Por qué esta prioridad**: Las devoluciones son parte habitual de la operación logística (rechazo del cliente, mercadería dañada o error de pedido). Permiten revertir un movimiento sin romper la regla de que un movimiento Despachado no se cancela, pero no son necesarias para la gestión básica. Esta historia depende del ciclo de vida de estados y de la regla de stock (Historia de Usuario 12).
+
+**Prueba Independiente**: Un usuario selecciona una salida en estado Entregado, registra una devolución parcial con motivo, la lleva hasta Recibida en bodega y comprueba que el stock disponible aumenta solo en la cantidad devuelta en buen estado, que el movimiento original queda intacto y que muestra cuánto se ha devuelto.
+
+**Alcance y decisiones**:
+
+- Aplica a **salidas a cliente y traslados entre almacenes**; las devoluciones a proveedor (órdenes de compra) quedan fuera de esta versión.
+- Solo se puede iniciar una devolución sobre movimientos **Entregado** (salidas) o **Recibido** (traslados). No se permite desde Despachado ni En tránsito: la mercadería aún no ha llegado a destino y debe completarse primero la entrega o recepción.
+- Se permiten **devoluciones parciales**.
+- La mercadería devuelta **dañada no vuelve al stock disponible**; se registra como merma.
+
+**Ciclo de vida de la devolución**: Solicitada → Aprobada → Recibida en bodega → Cerrada; Rechazada posible antes de Recibida en bodega.
+
+**Regla de stock de la devolución**:
+
+- El stock **no cambia** mientras la devolución esté en Solicitada, Aprobada o Rechazada.
+- Al pasar a **Recibida en bodega**, la cantidad en buen estado **aumenta el stock disponible** del almacén de origen del movimiento original. En un traslado, esa misma cantidad se descuenta del almacén de destino.
+- La cantidad dañada se registra como **merma** y no suma al stock disponible.
+
+**Escenarios de Aceptación**:
+
+1. **Dado** un movimiento en estado Entregado o Recibido, **cuando** el usuario registra una devolución, **entonces** se crea un documento de devolución nuevo, vinculado al movimiento original, que no modifica al original.
+2. **Dado** un movimiento en estado Despachado, En tránsito o previo a ellos, **cuando** el usuario intenta registrar una devolución, **entonces** el sistema la rechaza e indica que primero debe completarse la entrega o recepción.
+3. **Dado** que el usuario registra una devolución, **cuando** deja el motivo en blanco, **entonces** el sistema impide guardar y explica qué se necesita; el motivo se elige entre valores definidos (dañado, error de pedido, rechazo del cliente, vencido), no texto libre.
+4. **Dado** un movimiento con una cantidad despachada, **cuando** el usuario solicita una devolución parcial, **entonces** el sistema la acepta siempre que la cantidad no supere lo despachado menos lo ya devuelto.
+5. **Dada** una devolución cuya cantidad supera lo despachado menos lo ya devuelto, **cuando** el usuario intenta guardarla, **entonces** el sistema la rechaza e indica la cantidad máxima devolvible.
+6. **Dada** una devolución en estado Solicitada, Aprobada o Rechazada, **cuando** el usuario consulta el stock, **entonces** el stock no ha cambiado.
+7. **Dada** una devolución con cantidad en buen estado, **cuando** pasa a Recibida en bodega, **entonces** el stock disponible del almacén de origen aumenta en esa cantidad.
+8. **Dada** una devolución con cantidad dañada, **cuando** pasa a Recibida en bodega, **entonces** esa cantidad se registra como merma y no aumenta el stock disponible.
+9. **Dada** una devolución de un traslado, **cuando** pasa a Recibida en bodega, **entonces** el stock del almacén de destino disminuye y el del almacén de origen aumenta en la cantidad en buen estado.
+10. **Dada** una devolución con ciclo de vida configurado, **cuando** el usuario intenta una transición inválida (p. ej., de Solicitada a Cerrada), **entonces** el sistema la rechaza con una explicación clara.
+11. **Dado** un movimiento con devoluciones registradas, **cuando** el usuario ve su detalle o la lista, **entonces** se muestra de un vistazo la cantidad total devuelta.
+12. **Dada** una devolución Rechazada o Cerrada, **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
 
 ---
 
