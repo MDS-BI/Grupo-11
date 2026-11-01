@@ -89,25 +89,33 @@ Como usuario de negocio, quiero el inicio de una página con botones sencillos q
 
 ---
 
-### Historia de Usuario 4 - Gestionar entidades y documentos en una pantalla dedicada (Prioridad: P1)
+### Historia de Usuario 4 - Registrar movimientos de inventario en una pantalla dedicada (Prioridad: P1)
 
-Como usuario de negocio, quiero una pantalla dedicada donde pueda añadir, editar y eliminar entidades y sus documentos, para poder gestionar los datos del módulo en un lugar enfocado.
+Como encargado de bodega, quiero una pantalla dedicada donde registre los movimientos de inventario de entrada, salida, traslado y ajuste, para que el stock de la bodega refleje en todo momento lo que realmente hay en el almacén.
 
-**Por qué esta prioridad**: Esto preserva el valor central de las capacidades de gestión del módulo, presentado como una única pantalla de gestión accesible desde la barra lateral y las acciones rápidas del panel.
+**Por qué esta prioridad**: La captura de movimientos es la operación diaria central del módulo de logística: sin registrar entradas y salidas no existe un stock confiable sobre el que despachar, recibir o planificar. Es el equivalente operativo de la gestión de datos maestros del módulo base.
 
-**Prueba Independiente**: Un usuario puede navegar a la pantalla de gestión mediante la barra lateral o una acción rápida, alternar entre la gestión de entidades y documentos, y volver al panel, añadiendo, editando y eliminando con éxito una entidad y un documento.
+**Prueba Independiente**: Un usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, registra una entrada de un producto en un almacén con su cantidad y fecha, verifica que el stock resultante aumenta, y registra una salida que lo hace disminuir; una salida que dejaría el saldo en negativo se rechaza indicando el saldo disponible.
+
+**Alcance y decisiones**:
+
+- Un movimiento identifica un producto, un almacén, una cantidad y un tipo (entrada, salida, traslado o ajuste); el lote y el documento de origen son opcionales.
+- Los movimientos guardados son inmutables: no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
+- Con un ciclo de vida configurado, el momento en que el movimiento afecta al stock lo rige la Historia de Usuario 12; sin ciclo de vida, el saldo se actualiza al guardar.
+- El saldo por producto y almacén se calcula sumando sus movimientos; nunca se edita directamente.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de gestión, **cuando** mira la navegación, **entonces** la barra lateral del espacio de trabajo ofrece botones de módulo para Entidades, Documentos y Panel con el módulo activo resaltado.
-2. **Dada** la barra lateral visible, **cuando** el usuario activa el botón Entidades, **entonces** se muestra el contenido de gestión de entidades.
-3. **Dada** la barra lateral visible, **cuando** el usuario activa el botón Documentos, **entonces** se muestra el contenido de gestión de documentos.
-4. **Dado** que el usuario está en la pantalla de gestión, **cuando** mira la pantalla, **entonces** la lista de entidades no se muestra.
-5. **Dado** que el usuario está en la pantalla de gestión, **cuando** crea una nueva entidad, **entonces** la entidad se guarda.
-6. **Dada** una entidad existente, **cuando** el usuario edita sus detalles, **entonces** la información actualizada se guarda.
-7. **Dada** una entidad que ya no es relevante, **cuando** el usuario la elimina, **entonces** se elimina junto con sus documentos.
-8. **Dada** una entidad existente, **cuando** el usuario añade, edita o elimina un documento, **entonces** los cambios del documento se guardan y quedan asociados a esa entidad.
-9. **Dado** que el usuario está en la pantalla de gestión, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio.
+1. **Dado** que el usuario está en la pantalla de gestión de movimientos, **cuando** crea uno nuevo, **entonces** debe indicar tipo, producto, almacén, cantidad y fecha; si deja un campo obligatorio en blanco, el sistema impide guardar y explica qué se necesita.
+2. **Dada** una cantidad que no es un entero positivo o una fecha que no es una fecha de calendario válida, **cuando** el usuario intenta guardar, **entonces** el sistema rechaza el guardado con una explicación clara.
+3. **Dado** un producto y un almacén existentes, **cuando** el usuario registra una entrada, **entonces** el movimiento se guarda y el saldo del producto en ese almacén aumenta en la cantidad indicada.
+4. **Dada** una salida cuya cantidad supera el saldo disponible del producto en el almacén, **cuando** el usuario intenta guardarla, **entonces** el sistema la rechaza e indica el saldo disponible.
+5. **Dado** un movimiento guardado, **cuando** el usuario vuelve a la pantalla de gestión, **entonces** ve el saldo actual del producto por almacén de un vistazo.
+6. **Dado** que el usuario asocia un lote a un movimiento, **cuando** guarda, **entonces** el lote debe pertenecer al mismo producto; si no, el sistema lo rechaza con una explicación.
+7. **Dado** un movimiento, **cuando** el usuario lo registra, **entonces** puede asociarlo opcionalmente al documento que lo origina (p. ej. una orden de compra o una remisión).
+8. **Dado** un movimiento ya guardado, **cuando** el usuario intenta editarlo o eliminarlo, **entonces** el sistema no lo permite y explica que las correcciones se registran con un movimiento de ajuste.
+9. **Dado** que el usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, **cuando** la pantalla se abre, **entonces** el formulario está listo para introducir datos y el módulo activo queda resaltado.
+10. **Dado** que el usuario está en la pantalla de gestión, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio sin perder los movimientos almacenados.
 
 ---
 
@@ -271,7 +279,7 @@ Como jefe de logística, quiero que cada movimiento de inventario (documento) si
 
 Como usuario de negocio, quiero un espacio de trabajo estilo ERP consistente, con una barra superior con marca y una barra lateral de módulos presentes en cada pantalla, para que la aplicación se sienta como un sistema empresarial coherente en lugar de páginas sueltas.
 
-**Por qué esta prioridad**: El marco aporta la marca y la navegación de todas las demás pantallas; construirlo como envoltorio evita tocar cada historia por separado y da al módulo su identidad ERP. Depende del perfil de configuración (Historia de Usuario 5) para el nombre del módulo y la terminología, y reestructura la navegación antes proporcionada por los botones de bienvenida y las pestañas de gestión (Historias de Usuario 3 y 4).
+**Por qué esta prioridad**: El marco aporta la marca y la navegación de todas las demás pantallas; construirlo como envoltorio evita tocar cada historia por separado y da al módulo su identidad ERP. Depende del perfil de configuración (Historia de Usuario 5) para el nombre del módulo y la terminología, y centraliza la navegación entre pantallas —panel, gestión y búsqueda— dentro del espacio de trabajo.
 
 **Prueba Independiente**: En cada pantalla, una barra superior muestra un logotipo derivado del nombre del módulo junto al nombre del módulo, una barra lateral ofrece botones de módulo para Panel, Entidades, Documentos y Buscar con el módulo activo resaltado visualmente, y navegar entre módulos nunca pierde datos.
 
@@ -344,6 +352,11 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - ¿Qué ocurre cuando el panel se abre con cero entidades o cero documentos (valores estadísticos)?
 - ¿Qué ocurre cuando el color de acento configurado no es un valor de color válido?
 - ¿Cómo mantiene la barra lateral contraída las etiquetas de módulo accesibles en ventanas gráficas estrechas?
+- ¿Qué ocurre cuando un usuario registra una salida cuya cantidad supera el saldo disponible del producto en el almacén?
+- ¿Qué ocurre cuando un usuario intenta editar o eliminar un movimiento de inventario ya guardado?
+- ¿Qué ocurre cuando el lote indicado en un movimiento pertenece a un producto distinto al del movimiento?
+- ¿Qué ocurre cuando un usuario registra un movimiento con cantidad cero o negativa, o con una fecha inválida?
+- ¿Qué ocurre con el impacto de un movimiento en el stock cuando hay un ciclo de vida configurado y cuando no lo hay?
 
 ## Requisitos *(obligatorio)*
 
@@ -388,6 +401,11 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-037**: La barra lateral DEBE resaltar visualmente el módulo activo en cada pantalla.
 - **FR-038**: La configuración PUEDE definir un color de acento; el sistema DEBE aplicarlo consistentemente en todo el marco y retroceder de forma segura a los valores integrados cuando esté ausente o sea inválido.
 - **FR-039**: En ventanas gráficas estrechas, la barra lateral DEBE contraerse a una columna de iconos manteniéndose operable.
+- **FR-040**: El sistema DEBE permitir registrar movimientos de inventario de tipo entrada, salida, traslado o ajuste que referencien un producto y un almacén existentes, con una cantidad entero positivo y una fecha de calendario válida.
+- **FR-041**: El sistema DEBE calcular y mostrar el saldo de un producto por almacén como la suma de sus movimientos, sin permitir editarlo directamente.
+- **FR-042**: El sistema DEBE rechazar una salida cuya cantidad deje el saldo del producto en el almacén por debajo de cero, indicando el saldo disponible.
+- **FR-043**: Los movimientos guardados NO DEBEN ser editables ni eliminables; el sistema DEBE ofrecer registrar un movimiento de ajuste como corrección.
+- **FR-044**: El sistema DEBE permitir asociar opcionalmente un movimiento a un lote que pertenezca al mismo producto y al documento que lo origina.
 
 ### Requisitos de Extensibilidad *(obligaciones del módulo base)*
 
