@@ -119,36 +119,48 @@ Como encargado de bodega, quiero una pantalla dedicada donde registre los movimi
 
 ---
 
-### Historia de Usuario 5 - Definir un perfil de configuración del módulo (Prioridad: P1)
+### Historia de Usuario 5 - Gestionar las bodegas del inventario (Prioridad: P1)
 
-Como desarrollador de módulos, quiero declarar un único archivo de configuración que defina la identidad, terminología, campos personalizados y reglas de mi módulo, para adaptar el módulo base en un módulo específico sin modificar su código central.
+Como encargado de bodega, quiero crear, editar y desactivar las bodegas donde se guarda el inventario, para que cada movimiento se registre en el almacén real y el histórico quede protegido.
 
-**Por qué esta prioridad**: La adaptación mediante configuración es lo que convierte este proyecto de una aplicación fija en una base reutilizable. Sin ella, cada módulo personalizado requeriría editar archivos fuente centrales, lo que frustra el propósito de la plantilla; todas las historias de personalización posteriores dependen de que este mecanismo exista primero.
+**Por qué esta prioridad**: Todo movimiento de inventario exige indicar una bodega, así que el catálogo de bodegas es el cimiento del módulo de logística: sin él no se pueden separar los saldos por ubicación ni impedir registrar entradas en almacenes dados de baja. Además, proteger el histórico de movimientos es esencial para la confianza del inventario frente a auditorías y conteos.
 
-**Prueba Independiente**: Un desarrollador proporciona un archivo de configuración que define un perfil de Ventas (nombre del módulo, mapeos Entidad→Cliente, campos personalizados, ciclo de vida), y la aplicación se presenta plenamente como un módulo de Ventas; al quitar el archivo se restauran los valores predeterminados de la base sin errores.
+**Prueba Independiente**: Un encargado de bodega abre la pantalla de bodegas desde la barra lateral, crea una bodega con código y nombre, la desactiva y comprueba que ya no acepta movimientos nuevos, mientras que los movimientos y los saldos históricos de esa bodega siguen visibles e intactos.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que un archivo de configuración define el nombre del módulo, **cuando** la aplicación carga, **entonces** el panel de inicio y el marco del espacio de trabajo muestran el nombre configurado.
-2. **Dada** una configuración completa (nombre, mapeos de términos, campos personalizados, ciclo de vida), **cuando** la aplicación carga, **entonces** el módulo se presenta plenamente bajo la identidad configurada sin que se vean términos del módulo base en ningún sitio.
-3. **Dado** que no se proporciona configuración, **cuando** la aplicación carga, **entonces** la aplicación retrocede a los valores predeterminados integrados Entidad/Documento sin errores.
-4. **Dada** una configuración con valores inválidos o conflictivos, **cuando** la aplicación carga, **entonces** el sistema informa del problema con claridad en lugar de fallar silenciosamente.
+1. **Dado** que el encargado de bodega está en la pantalla de bodegas, **cuando** crea una bodega con código y nombre, **entonces** la bodega se guarda y aparece en la lista de bodegas.
+2. **Dado** que el usuario deja el código o el nombre en blanco, **cuando** intenta guardar la bodega, **entonces** el sistema impide guardar y explica qué se necesita.
+3. **Dada** una bodega ya registrada con un código determinado, **cuando** el usuario intenta crear otra con el mismo código (incluso si la primera está desactivada), **entonces** el sistema impide guardar e indica que el código está duplicado.
+4. **Dada** una bodega activa, **cuando** el usuario edita su nombre o dirección, **entonces** los cambios se guardan y los movimientos históricos que la referencian muestran la información actualizada sin que cambien sus cantidades ni los saldos.
+5. **Dada** una bodega con movimientos registrados, **cuando** el usuario intenta eliminarla, **entonces** el sistema rechaza la eliminación y sugiere desactivarla para conservar el histórico de inventario.
+6. **Dada** una bodega desactivada, **cuando** el usuario intenta registrar un movimiento con ella, **entonces** el sistema rechaza la operación e indica que la bodega no puede recibir movimientos.
+7. **Dada** una bodega desactivada, **cuando** el usuario consulta la lista de movimientos o los saldos existentes, **entonces** el histórico de esa bodega sigue visible y sus saldos no cambian.
+8. **Dada** una bodega desactivada, **cuando** el usuario la vuelve a activar, **entonces** queda disponible de nuevo para registrar movimientos sin necesidad de crear otra bodega.
+9. **Dado** que el encargado llega a la pantalla de bodegas desde la barra lateral, **cuando** la pantalla se abre, **entonces** ve la lista de bodegas con su código, nombre y estado (activa o desactivada) de un vistazo.
 
 ---
 
-### Historia de Usuario 6 - Reetiquetar pantallas desde la configuración (Prioridad: P1)
+### Historia de Usuario 6 - Registrar lotes y controlar vencimientos (Prioridad: P2)
 
-Como desarrollador de módulos, quiero que todas las etiquetas visibles para el usuario deriven de la configuración, para que un módulo adaptado hable su idioma de dominio de forma consistente en todo momento.
+Como operador de inventario, quiero registrar los lotes de cada producto con sus fechas y consultar su saldo y vencimiento, para despachar primero lo que vence antes y mantener la trazabilidad de lo que hay en bodega.
 
-**Por qué esta prioridad**: Los usuarios confían en un módulo que dice consistentemente "Cliente" y "Pedido de Venta" en lugar de dejar filtrarse una "Entidad" genérica por media interfaz; la terminología inconsistente hace que los módulos adaptados parezcan rotos. Esta historia depende del perfil de configuración (Historia de Usuario 5).
+**Por qué esta prioridad**: El control de lotes aporta trazabilidad y evita despachar mercadería vencida; es una mejora de madurez operativa que complementa la captura de movimientos (Historia de Usuario 4), pero no bloquea el MVP porque los lotes siguen siendo opcionales en los movimientos.
 
-**Prueba Independiente**: Un desarrollador mapea Entidad→Cliente y Documento→Pedido de Venta en la configuración, y cada pestaña, botón, etiqueta de formulario, encabezado y mensaje en las tres pantallas usa los términos mapeados.
+**Prueba Independiente**: Un operador de inventario registra un lote con número, fecha de fabricación y fecha de vencimiento para un producto, verifica que aparece en la lista de lotes de ese producto con saldo en cero y que al registrar una entrada con ese lote su saldo aumenta; al intentar guardar una fecha de vencimiento anterior a la de fabricación, el sistema rechaza el guardado.
 
 **Escenarios de Aceptación**:
 
-1. **Dados** mapeos de términos definidos en la configuración, **cuando** cualquier pantalla carga, **entonces** pestañas, botones, etiquetas de formulario, encabezados y mensajes de estado vacío muestran los términos configurados.
-2. **Dado** que las etiquetas han sido remapeadas, **cuando** el usuario navega entre pantallas, **entonces** el comportamiento de navegación no cambia.
-3. **Dado** que no se proporcionan mapeos, **cuando** cualquier pantalla carga, **entonces** se muestran los términos predeterminados Entidad/Documento.
+1. **Dado** que el operador de inventario está en la pantalla de lotes de un producto, **cuando** registra un lote con su número, **entonces** el lote se guarda, queda asociado al producto y aparece en la lista de lotes de ese producto con saldo inicial en cero.
+2. **Dado** que ya existe un lote con ese número para el mismo producto, **cuando** el usuario intenta registrarlo otra vez, **entonces** el sistema impide guardar e indica que el número de lote está duplicado; el mismo número sí se permite en otro producto.
+3. **Dada** una fecha de vencimiento anterior a la fecha de fabricación, **cuando** el usuario intenta guardar el lote, **entonces** el sistema rechaza el guardado con una explicación clara.
+4. **Dado** que el usuario deja en blanco la fecha de fabricación o la de vencimiento, **cuando** guarda el lote, **entonces** el lote se guarda igual porque esas fechas son opcionales.
+5. **Dado** un lote con movimientos de entrada y salida, **cuando** el usuario consulta sus datos, **entonces** el saldo del lote se muestra como la suma de sus movimientos y no se puede editar directamente.
+6. **Dada** una salida o un traslado de un producto con varios lotes vigentes con saldo, **cuando** el operador elige el lote a despachar, **entonces** el sistema sugiere primero el lote con la fecha de vencimiento más próxima (primer vencido, primero fuera).
+7. **Dado** un lote cuya fecha de vencimiento ya pasó, **cuando** el usuario intenta usarlo en una salida o un traslado, **entonces** el sistema lo rechaza e indica que el lote está vencido.
+8. **Dado** un producto con lotes vencidos o próximos a vencer, **cuando** el usuario consulta la lista de lotes, **entonces** esos lotes se marcan visualmente para detectarlos de un vistazo.
+9. **Dado** un producto sin lotes registrados, **cuando** el operador registra una salida, **entonces** puede guardarla sin lote porque el lote sigue siendo opcional en el movimiento.
+10. **Dado** un lote con movimientos asociados, **cuando** el usuario intenta eliminarlo, **entonces** el sistema rechaza la eliminación para conservar la trazabilidad de los movimientos.
 
 ---
 
@@ -156,7 +168,7 @@ Como desarrollador de módulos, quiero que todas las etiquetas visibles para el 
 
 Como desarrollador de módulos, quiero declarar campos adicionales para entidades y documentos en la configuración, para que aparezcan automáticamente en formularios, listas, validación y búsqueda sin escribir código de interfaz.
 
-**Por qué esta prioridad**: Los módulos personalizados existen porque sus registros contienen datos específicos del dominio (el límite de crédito de un cliente, la fecha de vencimiento de una factura). Si añadir campos requiere editar formularios y validación a mano, la adaptación es propensa a errores y no escala. Esta historia depende del perfil de configuración (Historia de Usuario 5).
+**Por qué esta prioridad**: Los módulos personalizados existen porque sus registros contienen datos específicos del dominio (el límite de crédito de un cliente, la fecha de vencimiento de una factura). Si añadir campos requiere editar formularios y validación a mano, la adaptación es propensa a errores y no escala. Esta historia depende de la configuración del módulo cargada al arrancar (ModuleConfig, FR-023 a FR-025).
 
 **Prueba Independiente**: Un desarrollador declara un campo numérico obligatorio personalizado en las entidades; se muestra como entrada numérica en el formulario, bloquea el guardado cuando está en blanco, muestra los valores guardados en las listas y coincide en las búsquedas.
 
@@ -249,7 +261,7 @@ Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar 
 
 Como jefe de logística, quiero que cada movimiento de inventario (documento) siga un ciclo de estados controlado, para que no se pueda marcar como recibido un movimiento que nunca fue despachado y el stock refleje la realidad.
 
-**Por qué esta prioridad**: Los módulos de logística necesitan ciclos de vida controlados, y el stock solo es confiable si cambia en el momento correcto. El estado de texto libre sigue siendo aceptable para extensiones simples, así que esto mejora la base sin ser necesario para la adaptación básica. Esta historia depende del perfil de configuración (Historia de Usuario 5).
+**Por qué esta prioridad**: Los módulos de logística necesitan ciclos de vida controlados, y el stock solo es confiable si cambia en el momento correcto. El estado de texto libre sigue siendo aceptable para extensiones simples, así que esto mejora la base sin ser necesario para la adaptación básica. Esta historia depende de la configuración del módulo cargada al arrancar (ModuleConfig, FR-023 a FR-025).
 
 **Prueba Independiente**: Un desarrollador configura el ciclo de un traslado (Solicitado → Despachado → En tránsito → Recibido); el control de estado ofrece solo estados siguientes válidos, las transiciones inválidas se rechazan con una explicación, el estado es visible de un vistazo en las listas y el stock cambia únicamente al despachar y al recibir.
 
@@ -285,7 +297,7 @@ Como jefe de logística, quiero que cada movimiento de inventario (documento) si
 
 Como usuario de negocio, quiero un espacio de trabajo estilo ERP consistente, con una barra superior con marca y una barra lateral de módulos presentes en cada pantalla, para que la aplicación se sienta como un sistema empresarial coherente en lugar de páginas sueltas.
 
-**Por qué esta prioridad**: El marco aporta la marca y la navegación de todas las demás pantallas; construirlo como envoltorio evita tocar cada historia por separado y da al módulo su identidad ERP. Depende del perfil de configuración (Historia de Usuario 5) para el nombre del módulo y la terminología, y centraliza la navegación entre pantallas —panel, gestión y búsqueda— dentro del espacio de trabajo.
+**Por qué esta prioridad**: El marco aporta la marca y la navegación de todas las demás pantallas; construirlo como envoltorio evita tocar cada historia por separado y da al módulo su identidad ERP. Depende de la configuración del módulo cargada al arrancar (ModuleConfig) para el nombre del módulo y la terminología, y centraliza la navegación entre pantallas —panel, gestión y búsqueda— dentro del espacio de trabajo.
 
 **Prueba Independiente**: En cada pantalla, una barra superior muestra un logotipo derivado del nombre del módulo junto al nombre del módulo, una barra lateral ofrece botones de módulo para Panel, Entidades, Documentos y Buscar con el módulo activo resaltado visualmente, y navegar entre módulos nunca pierde datos.
 
