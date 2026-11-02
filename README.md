@@ -9,7 +9,7 @@ Aplicación web de una sola página construida sobre el módulo base de un siste
 - Martin Gonzales Salas
 - Estefano Gutierres San Martin
 - Gonzalo Romero Aravena
-- Pablo Valladares Ruiz
+- Juan Pablo Valladares Ruiz
 
 ## Descripción del Proyecto
 

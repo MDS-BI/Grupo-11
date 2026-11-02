@@ -164,35 +164,56 @@ Como operador de inventario, quiero registrar los lotes de cada producto con sus
 
 ---
 
-### Historia de Usuario 7 - Declarar campos personalizados para los registros (Prioridad: P1)
+### Historia de Usuario 7 - Consultar el kárdex de un producto con saldo acumulado (Prioridad: P1)
 
-Como desarrollador de módulos, quiero declarar campos adicionales para entidades y documentos en la configuración, para que aparezcan automáticamente en formularios, listas, validación y búsqueda sin escribir código de interfaz.
+Como encargado de bodega, quiero ver el historial completo de movimientos de un producto junto a su saldo acumulado, para reconstruir cómo llegó a su stock actual y detectar diferencias o registros sospechosos.
 
-**Por qué esta prioridad**: Los módulos personalizados existen porque sus registros contienen datos específicos del dominio (el límite de crédito de un cliente, la fecha de vencimiento de una factura). Si añadir campos requiere editar formularios y validación a mano, la adaptación es propensa a errores y no escala. Esta historia depende de la configuración del módulo cargada al arrancar (ModuleConfig, FR-023 a FR-025).
+**Por qué esta prioridad**: El stock calculado solo es confiable si puede auditarse. El kárdex convierte movimientos dispersos en trazabilidad verificable y es la base para detectar errores de digitación o pérdidas. No requiere estructuras nuevas —se deriva de los movimientos ya registrados—, por lo que su costo es bajo frente al valor que entrega.
 
-**Prueba Independiente**: Un desarrollador declara un campo numérico obligatorio personalizado en las entidades; se muestra como entrada numérica en el formulario, bloquea el guardado cuando está en blanco, muestra los valores guardados en las listas y coincide en las búsquedas.
+**Prueba Independiente**: Un usuario abre el detalle de un producto, ve sus movimientos ordenados por fecha con el saldo acumulado después de cada uno, y comprueba que el último saldo coincide con el stock mostrado en la lista de productos.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** un campo personalizado de entidad de tipo número declarado como obligatorio, **cuando** el usuario crea o edita una entidad, **entonces** el campo se muestra como entrada numérica y un valor en blanco impide guardar con una explicación clara.
-2. **Dado** un campo personalizado con un valor guardado, **cuando** el usuario ve la lista o la vista de detalle, **entonces** el valor se muestra.
-3. **Dados** campos personalizados declarados, **cuando** el usuario busca usando un término que coincide con un valor de campo personalizado, **entonces** se devuelven los registros coincidentes.
-4. **Dado** que no hay campos personalizados declarados, **cuando** la aplicación se ejecuta, **entonces** el comportamiento es idéntico al del módulo base sin modificar.
+1. **Dado** un producto con movimientos registrados, **cuando** el usuario abre su historial, **entonces** ve cada movimiento con fecha, tipo, bodega, cantidad y saldo acumulado posterior, ordenados del más antiguo al más reciente.
+2. **Dado** un producto sin movimientos, **cuando** el usuario abre su historial, **entonces** se muestra un estado vacío que indica que aún no hay movimientos registrados.
+3. **Dado** un producto con entradas, salidas y ajustes confirmados, **cuando** el usuario consulta el historial, **entonces** el saldo acumulado se calcula solo con movimientos confirmados y el saldo final coincide con el stock mostrado en la lista de productos.
+4. **Dado** un movimiento anulado, **cuando** se muestra en el historial, **entonces** aparece marcado como anulado y no altera el saldo acumulado.
+5. **Dado** un historial con muchos movimientos, **cuando** el usuario lo consulta, **entonces** puede filtrar por tipo de movimiento y por rango de fechas.
+6. **Dado** un producto marcado con stock bajo, **cuando** el usuario revisa su historial, **entonces** puede identificar el último movimiento que dejó el saldo por debajo del mínimo.
+7. **Dado** el historial en modo solo lectura, **cuando** el usuario intenta modificar un movimiento desde ahí, **entonces** el sistema lo impide y lo remite a la pantalla de movimientos.
 
 ---
 
-### Historia de Usuario 8 - Buscar y encontrar entidades rápidamente (Prioridad: P2)
-Como usuario de negocio, quiero buscar mis entidades por detalles clave para encontrar rápidamente el registro que necesito.
+### Historia de Usuario 8 - Trasladar stock entre bodegas (Prioridad: P2)
 
-**Por qué esta prioridad**: La recuperación rápida mejora la utilidad cuando el conjunto de datos crece más allá de un pequeño número de entradas.
+Como encargado de bodega, quiero trasladar unidades de un producto desde una bodega de origen hacia otra de destino, para reflejar el movimiento real de mercadería entre almacenes sin alterar el stock total de la empresa.
 
-**Prueba Independiente**: Un usuario puede introducir un término de búsqueda y ver solo las entidades coincidentes.
+**Por qué esta prioridad**: Con una sola bodega el MVP funciona sin traslados; pero en cuanto existen varias, el traslado es la única forma de explicar por qué un producto deja de estar en un almacén y aparece en otro sin haber sido vendido. Se posterga porque exige un documento con dos almacenes, estados y stock en tránsito: una complejidad que no bloquea la captura básica de entradas y salidas.
+
+**Prueba Independiente**: Un encargado registra un traslado de 20 unidades del Almacén A al Almacén B y lo despacha; comprueba que A baja en 20 y que las unidades quedan "en tránsito" sin estar disponibles en B; al marcarlo como recibido, B sube en 20 y el tránsito se cierra. Al intentar trasladar 999 unidades con solo 50 disponibles en origen, el sistema rechaza la operación e indica el saldo disponible.
+
+**Alcance y decisiones**:
+
+- Un traslado tiene bodega de origen, bodega de destino, fecha, estado y una o más líneas (producto + cantidad); un mismo producto no puede repetirse en dos líneas.
+- El stock total de la empresa no cambia: solo se redistribuye entre bodegas.
+- Las unidades despachadas y aún no recibidas quedan **en tránsito**: no están disponibles en ninguna de las dos bodegas.
+- El ciclo de estados sigue la Historia de Usuario 12, con la cadena de referencia Solicitado → Despachado → En tránsito → Recibido.
+- Un traslado confirmado es inmutable; una corrección se registra con un movimiento de ajuste, igual que en la Historia de Usuario 4.
+- No se permiten traslados desde o hacia bodegas desactivadas (Historia de Usuario 5).
 
 **Escenarios de Aceptación**:
 
-1. **Dadas** múltiples entidades almacenadas, **cuando** el usuario busca con un término coincidente, **entonces** solo se muestran las entidades coincidentes.
-2. **Dada** una búsqueda sin coincidencias, **cuando** el usuario envía la búsqueda, **entonces** el sistema muestra un estado vacío claro y permite volver a intentarlo.
-3. **Dadas** cientos de entidades almacenadas, **cuando** el usuario busca, **entonces** los resultados coincidentes aparecen con prontitud sin retraso perceptible.
+1. **Dado** que el usuario está en la pantalla de traslados, **cuando** crea uno nuevo, **entonces** debe indicar bodega de origen, bodega de destino, fecha y al menos un producto con cantidad; si falta un campo obligatorio, el sistema impide guardar y explica qué se necesita.
+2. **Dado** un traslado en preparación, **cuando** el usuario selecciona la misma bodega como origen y destino, **entonces** el sistema rechaza la operación e indica que deben ser distintas.
+3. **Dado** un producto con 50 unidades en la bodega de origen, **cuando** el usuario intenta trasladar 999, **entonces** el sistema rechaza la operación e indica el saldo disponible en origen.
+4. **Dada** una cantidad no positiva o no numérica, **cuando** el usuario intenta guardar la línea, **entonces** el sistema la rechaza con una explicación clara.
+5. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo despacha, **entonces** el saldo de origen disminuye en la cantidad trasladada y las unidades quedan marcadas como "en tránsito", sin estar disponibles en destino.
+6. **Dado** un traslado "En tránsito", **cuando** el usuario consulta el stock de cualquiera de las dos bodegas, **entonces** las unidades en tránsito no se suman al saldo disponible y se informan por separado.
+7. **Dado** un traslado "En tránsito", **cuando** el usuario lo marca como "Recibido", **entonces** el saldo de destino aumenta en la cantidad trasladada y el tránsito se cierra.
+8. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo cancela, **entonces** no se altera ningún saldo.
+9. **Dado** un traslado ya "Recibido", **cuando** el usuario intenta cancelarlo o editarlo, **entonces** el sistema lo impide y explica que la corrección se registra con un ajuste.
+10. **Dado** un traslado despachado o recibido, **cuando** el usuario consulta la trazabilidad de un producto, **entonces** el traslado aparece en el historial de ambas bodegas con su referencia.
+11. **Dada** una bodega de destino desactivada, **cuando** el usuario intenta trasladar hacia ella, **entonces** el sistema lo rechaza e indica que la bodega no puede recibir movimientos.
 
 ---
 
