@@ -184,34 +184,40 @@ Como usuario de negocio, quiero buscar mis entidades por detalles clave para enc
 
 ---
 
-### Historia de Usuario 9 - Registrar una fecha objetivo (Prioridad: P2)
-Como usuario de negocio, quiero adjuntar una fecha objetivo opcional a una entidad para planificar y ordenar los registros según cuándo vence algo.
+### Historia de Usuario 9 - Definir stock mínimo por producto y almacén (Prioridad: P2)
+Como encargado de bodega, quiero definir un stock mínimo por producto y almacén, para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
 
-**Por qué esta prioridad**: La planificación consciente de fechas mejora el valor central cuando el conjunto de datos crece, pero no es necesaria para la gestión básica.
+**Por qué esta prioridad**: El stock mínimo automatiza la detección de faltantes para evitar conteos manuales, ganando valor a medida que crecen el catálogo y los almacenes; sin embargo, no bloquea el MVP, ya que las entradas y salidas pueden gestionarse completas sin él.
 
-**Prueba Independiente**: Un usuario puede fijar una fecha en una entidad y verla mostrada en la lista.
+**Prueba Independiente**: Un encargado de bodega fija un stock mínimo de 10 unidades para un producto en un almacén, guarda, y al consultar la lista o la búsqueda ve el producto marcado como "stock bajo" cuando su saldo real es 5; al subir el saldo con una entrada a 15, la marca desaparece.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que un usuario está creando o editando una entidad, **cuando** introduce una fecha objetivo, **entonces** la fecha se guarda y se muestra en la lista.
-2. **Dada** una entidad con fecha fijada, **cuando** el usuario ve la lista, **entonces** las entidades con fechas pueden identificarse de un vistazo.
-3. **Dado** que un usuario deja la fecha en blanco, **cuando** guarda la entidad, **entonces** la entidad igualmente se guarda sin fecha (campo opcional).
+1. **Dado** que el encargado de bodega está creando o editando un producto, **cuando** introduce un stock mínimo de 10 unidades y guarda, **entonces** el valor se guarda y se muestra junto al producto en la lista.
+2. **Dado** un producto con stock mínimo definido y un saldo real de 5 unidades en un almacén, **cuando** el usuario consulta la lista o la pantalla de búsqueda, **entonces** el producto aparece marcado visualmente como "stock bajo".
+3. **Dado** un producto marcado como "stock bajo", **cuando** el usuario registra una entrada que eleva su saldo a 15 unidades, **entonces** la marca de "stock bajo" desaparece al volver a consultar la lista o la búsqueda.
+4. **Dada** una cantidad negativa o no numérica, **cuando** el usuario intenta guardar el stock mínimo, **entonces** el sistema rechaza el guardado con una explicación clara.
+5. **Dado** que el usuario deja el stock mínimo en blanco, **cuando** guarda el producto, **entonces** el producto se guarda sin mínimo y la lista no muestra ninguna marca de "stock bajo" para él.
+6. **Dado** un producto cuyo saldo es igual a su stock mínimo, **cuando** el usuario consulta la lista o la búsqueda, **entonces** no se marca como "stock bajo" porque el saldo no queda por debajo del mínimo.
+
 
 ---
 
-### Historia de Usuario 10 - Registrar los detalles de documentos de una entidad (Prioridad: P2)
-Como usuario de negocio, quiero registrar detalles de documentos para una entidad, para mantener la actividad transaccional organizada junto a cada registro de datos maestros.
+### Historia de Usuario 10 - Registrar documentos de respaldo de logística (Prioridad: P2)
+Como usuario de negocio, quiero crear y organizar los documentos de logística junto a los productos, para mantener la actividad transaccional ordenada y no perder evidencia de las operaciones.
 
-**Por qué esta prioridad**: Los documentos aportan valor operativo práctico una vez que las entidades están gestionadas, pero no son necesarios para la gestión central.
+**Por qué esta prioridad**: Guardar los documentos de respaldo junto a los productos permite rastrear cada entrada o salida hasta el pedido o remisión que la originó, lo que da confianza al inventario frente a auditorías y diferencias. Es una mejora de madurez operativa: el módulo funciona sin ella, pero con evidencia dispersa. 
 
-**Prueba Independiente**: Un usuario puede añadir un documento a una entidad y ver los detalles del documento mostrados junto a esa entidad.
+**Prueba Independiente**: Un usuario crea una orden de compra con sus datos obligatorios, la ve aparecer en la lista de documentos junto al producto asociado, y al eliminar ese producto comprueba que el documento también se elimina en cascada.
 
 **Escenarios de Aceptación**:
 
-1. **Dada** una entidad en la lista, **cuando** el usuario añade un documento con detalles, **entonces** el documento se guarda y queda asociado a esa entidad.
-2. **Dado** un documento existente para una entidad, **cuando** el usuario selecciona esa entidad en la pantalla de gestión, **entonces** los detalles del documento se muestran en la vista de gestión de documentos.
-3. **Dada** una entidad eliminada, **cuando** se confirma la eliminación, **entonces** sus documentos asociados también se eliminan.
-4. **Dado** que un usuario está creando un documento, **cuando** deja la información obligatoria del documento en blanco, **entonces** el sistema impide guardar y explica qué se necesita.
+1. **Dada** la lista de productos, **cuando** el usuario crea una orden de compra con sus datos obligatorios y la asocia a un producto, **entonces** el documento se guarda y aparece en la lista de documentos junto a ese producto.
+2. **Dado** que el usuario está creando un documento de respaldo (orden de compra o remisión), **cuando** deja un campo obligatorio en blanco, **entonces** el sistema impide guardar y explica qué se necesita.
+3. **Dada** la lista de documentos de un producto, **cuando** el usuario los consulta, **entonces** cada documento se muestra con su tipo y su folio, identificables de un vistazo.
+4. **Dado** un documento de respaldo existente, **cuando** el usuario edita sus datos, **entonces** los cambios se guardan y se reflejan en la lista junto al producto.
+5. **Dado** un producto con documentos de respaldo asociados, **cuando** el usuario elimina el producto, **entonces** sus documentos también se eliminan (borrado en cascada).
+6. **Dado** un movimiento de inventario registrado, **cuando** el usuario lo asocia al documento que lo origina, **entonces** el movimiento queda vinculado a esa orden de compra o remisión.
 
 ---
 
