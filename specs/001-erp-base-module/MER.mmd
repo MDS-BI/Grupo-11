@@ -1,0 +1,154 @@
+erDiagram
+    companies {
+        int company_id PK
+    }
+    addresses {
+        int address_id PK
+    }
+    employees {
+        int employee_id PK
+    }
+    purchase_orders {
+        int purchase_order_id PK
+    }
+    sales_orders {
+        int sales_order_id PK
+    }
+    product_categories {
+        int product_category_id PK
+        int parent_category_id FK
+        varchar category_name
+    }
+    units_of_measure {
+        int uom_id PK
+        varchar uom_name
+        varchar uom_symbol
+    }
+    products {
+        int product_id PK
+        int product_category_id FK
+        int uom_id FK
+        varchar sku
+        varchar product_name
+        varchar product_type
+        decimal standard_cost
+        boolean is_active
+    }
+    warehouses {
+        int warehouse_id PK
+        int company_id FK
+        int address_id FK
+        varchar warehouse_name
+    }
+    warehouse_locations {
+        int location_id PK
+        int warehouse_id FK
+        varchar location_code
+        varchar aisle
+        varchar rack
+        varchar bin
+    }
+    inventory_stock {
+        int stock_id PK
+        int product_id FK
+        int warehouse_id FK
+        int location_id FK
+        decimal quantity_on_hand
+        decimal quantity_reserved
+    }
+    inventory_transactions {
+        int inventory_transaction_id PK
+        int product_id FK
+        int warehouse_id FK
+        int location_id FK
+        varchar transaction_type
+        decimal quantity
+        decimal unit_cost
+        varchar reason
+        int created_by FK
+        datetime transaction_date
+        varchar reference_module
+        int reference_id
+    }
+    reorder_rules {
+        int reorder_rule_id PK
+        int product_id FK
+        int warehouse_id FK
+        decimal min_quantity
+        decimal max_quantity
+        int lead_time_days
+    }
+    stock_transfers {
+        int transfer_id PK
+        int from_warehouse_id FK
+        int to_warehouse_id FK
+        date transfer_date
+        varchar status
+    }
+    stock_transfer_lines {
+        int transfer_line_id PK
+        int transfer_id FK
+        int product_id FK
+        decimal quantity
+    }
+    goods_receipts {
+        int goods_receipt_id PK
+        int purchase_order_id FK
+        int warehouse_id FK
+        date receipt_date
+    }
+    goods_receipt_lines {
+        int goods_receipt_line_id PK
+        int goods_receipt_id FK
+        int product_id FK
+        decimal quantity_received
+    }
+    carriers {
+        int carrier_id PK
+        varchar carrier_name
+        varchar contact_info
+    }
+    shipments {
+        int shipment_id PK
+        int sales_order_id FK
+        int warehouse_id FK
+        int carrier_id FK
+        date ship_date
+        varchar tracking_number
+        varchar status
+    }
+    shipment_lines {
+        int shipment_line_id PK
+        int shipment_id FK
+        int product_id FK
+        decimal quantity_shipped
+    }
+
+    product_categories ||--o{ product_categories : subcategoria
+    product_categories ||--o{ products : clasifica
+    units_of_measure ||--o{ products : mide
+    companies ||--o{ warehouses : posee
+    addresses ||--o{ warehouses : ubica
+    warehouses ||--o{ warehouse_locations : contiene
+    products ||--o{ inventory_stock : "tiene saldo"
+    warehouses ||--o{ inventory_stock : almacena
+    warehouse_locations ||--o{ inventory_stock : guarda
+    products ||--o{ inventory_transactions : "se mueve"
+    warehouses ||--o{ inventory_transactions : registra
+    warehouse_locations ||--o{ inventory_transactions : afecta
+    employees ||--o{ inventory_transactions : registra
+    products ||--o{ reorder_rules : tiene
+    warehouses ||--o{ reorder_rules : aplica
+    warehouses ||--o{ stock_transfers : origen
+    warehouses ||--o{ stock_transfers : destino
+    stock_transfers ||--o{ stock_transfer_lines : incluye
+    products ||--o{ stock_transfer_lines : transferido
+    purchase_orders ||--o{ goods_receipts : "se recibe en"
+    warehouses ||--o{ goods_receipts : recibe
+    goods_receipts ||--o{ goods_receipt_lines : incluye
+    products ||--o{ goods_receipt_lines : recibido
+    sales_orders ||--o{ shipments : "se despacha en"
+    warehouses ||--o{ shipments : despacha
+    carriers ||--o{ shipments : transporta
+    shipments ||--o{ shipment_lines : incluye
+    products ||--o{ shipment_lines : despachado
