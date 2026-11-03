@@ -9,6 +9,16 @@
 
 Este proyecto sirve como módulo base reutilizable para construir módulos ERP personalizados. Establece los patrones comunes que todo módulo ERP necesita: gestionar registros de datos maestros (**Entidades**) y sus **Documentos** transaccionales asociados, con navegación, validación, persistencia y búsqueda ya implementadas, de modo que los módulos personalizados solo necesiten definir sus campos y reglas específicos del dominio.
 
+## Clarifications
+
+### Session 2026-11-03
+
+- Q: ¿Cómo debe presentarse la interfaz del MVP, como un módulo de Logística e Inventario con etiquetas propias (Producto, Bodega, Movimiento) o como el módulo base genérico de ERP (Entidad, Documento)? → A: Opción A: Logística por defecto; la UI muestra Producto, Bodega y Movimiento desde el arranque (Entidad→Producto, Documento→Movimiento como etiquetas visibles) y Entidad/Documento quedan como nombres internos del módulo base.
+- Q: ¿Cómo debe llegar el usuario a las pantallas de Bodegas y de Lotes desde la navegación principal? → A: Opción A: quinto botón en la barra lateral (Panel, Productos, Movimientos, Bodegas y Buscar); los Lotes se abren desde la gestión del producto, no como módulo independiente.
+- Q: ¿Habrá control de acceso por rol en el MVP, de modo que el Encargado de Bodega y el Operador de Inventario vean pantallas o acciones diferentes? → A: Opción A: sin autenticación; todos los usuarios tienen los mismos permisos y los roles de las historias son solo actores de los escenarios.
+- Q: ¿Cómo debe representarse un traslado entre bodegas en el modelo de datos para que sus saldos cuadren? → A: Opción A: dos movimientos vinculados que comparten el documento del traslado — un tramo de salida en el almacén de origen y un tramo de entrada en el almacén de destino —; el saldo de cada almacén sigue siendo la suma de sus movimientos.
+- Q: ¿Dónde deben guardarse el estado de ciclo de vida de un movimiento y el registro de una devolución, que hoy no existen en el modelo de datos? → A: Opción A: el estado vive en el propio movimiento (campo `status` con su fecha de cambio) y la devolución es una entidad propia con motivo, cantidades, merma y ciclo de vida, vinculada al movimiento original sin modificarlo.
+
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
 ### Historia de Usuario 1 - Crear y organizar entidades (Prioridad: P1)
@@ -76,13 +86,13 @@ Como usuario de negocio, quiero el inicio de una página con botones sencillos q
 
 **Por qué esta prioridad**: La pantalla de inicio es el punto de entrada de la aplicación. Nada más puede alcanzarse sin ella, y los botones sencillos son la ruta más rápida hacia cada flujo de trabajo central.
 
-**Prueba Independiente**: Un usuario abre la aplicación, ve una pantalla con múltiples botones sencillos claramente etiquetados y estadísticas de registros, inicia una nueva entidad o documento con un solo clic y ve estadísticas que reflejan los datos almacenados.
+**Prueba Independiente**: Un usuario abre la aplicación, ve una pantalla con múltiples botones sencillos claramente etiquetados y estadísticas de registros, inicia un nuevo producto o movimiento con un solo clic y ve estadísticas que reflejan los datos almacenados.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario abre la aplicación, **cuando** la aplicación carga, **entonces** se muestra la pantalla de inicio con al menos cuatro botones sencillos claramente etiquetados que cubren las tareas ERP clave: crear una nueva entidad, crear un nuevo documento, abrir la gestión de entidades y buscar registros.
-2. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nueva entidad, **entonces** la aplicación abre el área de gestión de entidades con un formulario vacío listo para introducir datos.
-3. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo documento, **entonces** la aplicación abre el área de gestión de documentos con un formulario vacío listo para introducir datos.
+1. **Dado** que el usuario abre la aplicación, **cuando** la aplicación carga, **entonces** se muestra la pantalla de inicio con al menos cuatro botones sencillos claramente etiquetados que cubren las tareas clave: crear un nuevo producto, crear un nuevo movimiento, abrir la gestión de productos y buscar registros (etiquetas por defecto de Logística e Inventario; ver Clarificaciones).
+2. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo producto, **entonces** la aplicación abre el área de gestión de productos con un formulario vacío listo para introducir datos.
+3. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo movimiento, **entonces** la aplicación abre el área de gestión de movimientos con un formulario vacío listo para introducir datos.
 4. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de buscar registros, **entonces** la aplicación abre la pantalla de búsqueda con el campo de búsqueda enfocado.
 5. **Dadas** entidades y documentos almacenados, **cuando** el usuario ve la pantalla de inicio, **entonces** las tarjetas de estadísticas muestran el recuento actual de entidades y documentos.
 6. **Dado** que el usuario crea o elimina registros en otra parte de la aplicación, **cuando** vuelve a la pantalla de inicio, **entonces** las estadísticas reflejan el cambio.
@@ -100,6 +110,7 @@ Como encargado de bodega, quiero una pantalla dedicada donde registre los movimi
 **Alcance y decisiones**:
 
 - Un movimiento identifica un producto, un almacén, una cantidad y un tipo (entrada, salida, traslado o ajuste); el lote y el documento de origen son opcionales.
+- Un traslado se captura una sola vez indicando almacén de origen y almacén de destino, y se guarda como dos movimientos vinculados (salida en el origen, entrada en el destino) que comparten el documento del traslado (ver Clarificaciones).
 - Los movimientos guardados son inmutables: no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
 - Con un ciclo de vida configurado, el momento en que el movimiento afecta al stock lo rige la Historia de Usuario 12; sin ciclo de vida, el saldo se actualiza al guardar.
 - El saldo por producto y almacén se calcula sumando sus movimientos; nunca se edita directamente.
@@ -151,7 +162,7 @@ Como operador de inventario, quiero registrar los lotes de cada producto con sus
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el operador de inventario está en la pantalla de lotes de un producto, **cuando** registra un lote con su número, **entonces** el lote se guarda, queda asociado al producto y aparece en la lista de lotes de ese producto con saldo inicial en cero.
+1. **Dado** que el operador de inventario abre la pantalla de lotes desde la gestión del producto, **cuando** registra un lote con su número, **entonces** el lote se guarda, queda asociado al producto y aparece en la lista de lotes de ese producto con saldo inicial en cero.
 2. **Dado** que ya existe un lote con ese número para el mismo producto, **cuando** el usuario intenta registrarlo otra vez, **entonces** el sistema impide guardar e indica que el número de lote está duplicado; el mismo número sí se permite en otro producto.
 3. **Dada** una fecha de vencimiento anterior a la fecha de fabricación, **cuando** el usuario intenta guardar el lote, **entonces** el sistema rechaza el guardado con una explicación clara.
 4. **Dado** que el usuario deja en blanco la fecha de fabricación o la de vencimiento, **cuando** guarda el lote, **entonces** el lote se guarda igual porque esas fechas son opcionales.
@@ -297,6 +308,7 @@ Como jefe de logística, quiero que cada movimiento de inventario (documento) si
 - El stock **baja al pasar a Despachado** (salidas y traslados, en el almacén de origen), nunca antes. Una cancelación durante Solicitado, Pendiente o Preparado no afecta el stock, evitando descuentos incorrectos y reingresos manuales.
 - El stock **sube al pasar a Recibido / Recibida** (órdenes de compra y traslados, en el almacén de destino).
 - Una vez Despachado, el movimiento ya no puede cancelarse.
+- El estado del ciclo de vida se guarda en el propio movimiento (campo `status`) junto con la fecha del cambio; las devoluciones son registros aparte con su propio ciclo de vida (HU 14; ver Clarifications).
 
 **Escenarios de Aceptación**:
 
@@ -320,12 +332,12 @@ Como usuario de negocio, quiero un espacio de trabajo estilo ERP consistente, co
 
 **Por qué esta prioridad**: El marco aporta la marca y la navegación de todas las demás pantallas; construirlo como envoltorio evita tocar cada historia por separado y da al módulo su identidad ERP. Depende de la configuración del módulo cargada al arrancar (ModuleConfig) para el nombre del módulo y la terminología, y centraliza la navegación entre pantallas —panel, gestión y búsqueda— dentro del espacio de trabajo.
 
-**Prueba Independiente**: En cada pantalla, una barra superior muestra un logotipo derivado del nombre del módulo junto al nombre del módulo, una barra lateral ofrece botones de módulo para Panel, Entidades, Documentos y Buscar con el módulo activo resaltado visualmente, y navegar entre módulos nunca pierde datos.
+**Prueba Independiente**: En cada pantalla, una barra superior muestra un logotipo derivado del nombre del módulo junto al nombre del módulo, una barra lateral ofrece botones de módulo para Panel, Productos, Movimientos, Bodegas y Buscar con el módulo activo resaltado visualmente, y navegar entre módulos nunca pierde datos.
 
 **Escenarios de Aceptación**:
 
 1. **Dada** cualquier pantalla mostrada, **cuando** el usuario mira la página, **entonces** es visible una barra superior que contiene un logotipo SVG en línea derivado del nombre del módulo y el nombre del módulo configurado.
-2. **Dada** cualquier pantalla mostrada, **cuando** el usuario mira la barra lateral, **entonces** se muestran botones de módulo para Panel, Entidades, Documentos y Buscar usando la terminología configurada.
+2. **Dada** cualquier pantalla mostrada, **cuando** el usuario mira la barra lateral, **entonces** se muestran botones de módulo para Panel, Productos, Movimientos, Bodegas y Buscar usando la terminología por defecto de Logística e Inventario (ver Clarificaciones).
 3. **Dado** que el usuario está en cualquier pantalla, **cuando** mira la barra lateral, **entonces** el botón del módulo activo está resaltado visualmente.
 4. **Dado** que la ventana gráfica es estrecha, **cuando** se usa la aplicación en una pantalla pequeña, **entonces** la barra lateral se contrae a una columna de iconos manteniéndose utilizable y etiquetada de forma accesible.
 5. **Dada** una configuración que define un color de acento, **cuando** cualquier pantalla carga, **entonces** el marco lo usa consistentemente para resaltados y controles principales; sin valor configurado o con un valor inválido, se usan los valores predeterminados integrados sin errores.
@@ -412,7 +424,7 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-009**: El sistema DEBE asociar cada documento exactamente a una entidad y eliminar los documentos asociados cuando la entidad se elimina.
 - **FR-010**: El sistema DEBE mostrar un panel de inicio como vista inicial, con botones de acción rápida claramente etiquetados para las tareas ERP clave.
 - **FR-011**: El sistema DEBE envolver cada pantalla en un marco de espacio de trabajo persistente compuesto por una barra superior con marca y una barra lateral de navegación de módulos.
-- **FR-012**: La barra lateral DEBE proporcionar botones de módulo para Panel, Entidades, Documentos y Buscar, etiquetados desde la configuración del módulo.
+- **FR-012**: La barra lateral DEBE proporcionar botones de módulo para Panel, Productos, Movimientos, Bodegas y Buscar, etiquetados desde la configuración del módulo.
 - **FR-013**: El botón de módulo Entidades DEBE mostrar el contenido de gestión de entidades.
 - **FR-014**: El botón de módulo Documentos DEBE mostrar el contenido de gestión de documentos en la pantalla de gestión.
 - **FR-015**: El botón de módulo Panel DEBE devolver al usuario al panel de inicio.
@@ -433,7 +445,7 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-030**: El sistema DEBE aplicar las transiciones de estado configuradas en los documentos independientemente de cómo se envíe un cambio.
 - **FR-031**: El sistema DEBE mantener el estado del documento como texto libre cuando no hay ciclo de vida configurado.
 - **FR-032**: El sistema DEBE mantener el renderizado de listas y la búsqueda ágiles y correctos para conjuntos de datos de al menos 500 registros de entidad.
-- **FR-033**: El panel DEBE ofrecer al menos cuatro botones de acción rápida: nueva entidad, nuevo documento, abrir gestión de entidades y buscar registros.
+- **FR-033**: El panel DEBE ofrecer al menos cuatro botones de acción rápida: nuevo producto, nuevo movimiento, abrir gestión de productos y buscar registros (etiquetas por defecto de Logística e Inventario).
 - **FR-034**: Activar la acción rápida de nueva entidad o nuevo documento DEBE abrir el área de gestión correspondiente con un formulario vacío listo para introducir datos.
 - **FR-035**: El panel DEBE mostrar tarjetas de estadísticas con el número de entidades y documentos almacenados, actualizadas cada vez que se muestra el panel.
 - **FR-036**: La barra superior DEBE mostrar un logotipo derivado del nombre del módulo junto con el nombre del módulo configurado en cada pantalla.
@@ -445,6 +457,7 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-042**: El sistema DEBE rechazar una salida cuya cantidad deje el saldo del producto en el almacén por debajo de cero, indicando el saldo disponible.
 - **FR-043**: Los movimientos guardados NO DEBEN ser editables ni eliminables; el sistema DEBE ofrecer registrar un movimiento de ajuste como corrección.
 - **FR-044**: El sistema DEBE permitir asociar opcionalmente un movimiento a un lote que pertenezca al mismo producto y al documento que lo origina.
+- **FR-045**: La pantalla de gestión de lotes DEBE abrirse desde la gestión del producto correspondiente; la barra lateral NO DEBE exponer un módulo independiente de Lotes.
 
 ### Requisitos de Extensibilidad *(obligaciones del módulo base)*
 
@@ -461,6 +474,9 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - **Entidad**: Un registro de datos maestros gestionado por el módulo, que incluye su nombre, código de negocio, detalles descriptivos, categoría de clasificación, una fecha objetivo opcional y un entity_id autogenerado. Los módulos personalizados definen qué representa una Entidad en el mundo real (p. ej., cliente, producto, activo).
 - **Documento**: Detalles transaccionales adjuntos a una entidad, vinculados a ella por el entity_id de la entidad. Los módulos personalizados definen qué representa un Documento (p. ej., pedido, factura, contrato).
 - **ModuleConfig**: El objeto de adaptación cargado al arrancar que define el nombre del módulo, las etiquetas de terminología, las definiciones de campos personalizados y el ciclo de vida de estados de documentos. Consulte data-model.md para su forma completa.
+- **Movimiento de traslado**: Dos movimientos de inventario vinculados por el mismo documento de traslado —tramo de salida en el almacén de origen y tramo de entrada en el almacén de destino— que se guardan juntos; el saldo de cada almacén se calcula como la suma de sus movimientos, sin excepciones en el motor de saldos.
+- **Estado del movimiento**: Cada movimiento de inventario lleva un campo `status` con el estado actual de su ciclo de vida y la fecha del cambio (HU 12); sin ciclo de vida configurado, el estado permanece como texto libre.
+- **Devolución**: Registro propio de la devolución de un movimiento ya entregado o recibido, con motivo, cantidad en buen estado, cantidad dañada (merma) y ciclo de vida Solicitada → Aprobada → Recibida en bodega → Cerrada (Rechazada posible antes de Recibida), vinculado al movimiento original sin modificarlo (HU 14).
 
 ## Criterios de Éxito *(obligatorio)*
 
@@ -493,4 +509,6 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - Los datos siguen persistiéndose en el localStorage del navegador y no se ven afectados por la navegación entre pantallas.
 - La pantalla de búsqueda se centra en encontrar y ver entidades; la edición permanece en la pantalla de gestión.
 - El contenido del usuario introducido por el usuario (nombres, descripciones, notas de documentos) DEBE sanitizarse antes de renderizarse en el DOM para prevenir ataques de inyección de scripts (XSS). El módulo base DEBE escapar HTML y atributos de eventos al mostrar datos de localStorage.
+- El MVP se distribuye con una configuración de Logística e Inventario cargada por defecto, de modo que la UI muestra Producto, Bodega y Movimiento; Entidad y Documento son los nombres internos del módulo base y solo aparecen en pantalla si una configuración los define así. Sin configuración, el módulo base retrocede a Entidad/Documento (FR-024). Ver Clarifications.
+- No hay autenticación ni control de acceso por rol en el MVP: los roles mencionados en las historias (usuario de negocio, encargado de bodega, operador de inventario, jefe de logística, encargado de recepción) son actores de los escenarios y todos comparten los mismos permisos. Ver Clarifications.
 
