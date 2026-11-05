@@ -19,6 +19,7 @@ Representa el dato maestro central del módulo (p. ej., cliente, proveedor, art�
 | targetDate | string | Fecha objetivo opcional en formato YYYY-MM-DD; los módulos personalizados definen su significado (p. ej., fecha de vencimiento, fecha de revisión) | Opcional, debe ser una fecha de calendario válida si se proporciona |
 | creditLimit | number | Límite de crédito extendido a la entidad en la moneda configurada | Opcional, debe ser un número no negativo |
 | paymentTerms | string | Condiciones de pago acordadas (p. ej., contado, neto 30) | Opcional |
+| stockMin | number | Stock mínimo por producto para marcar "stock bajo" cuando el saldo total queda por debajo (HU 9) | Opcional; debe ser un entero no negativo; vacío = sin mínimo |
 | createdAt | string | Marca de tiempo de cuándo se creó la entidad | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización de la entidad | Obligatorio |
 
@@ -30,6 +31,7 @@ Representa un documento transaccional vinculado a una entidad (p. ej., pedido, f
 |---|---|---|---|
 | id | string | Identificador único del documento | Obligatorio, generado automáticamente |
 | entity_id | string | Identificador de la entidad a la que pertenece este documento | Obligatorio, debe referenciar el entity_id de una entidad existente |
+| type | string | Tipo de documento: `orden-compra` o `remision` (HU 10) | Obligatorio; uno de los valores soportados por el módulo |
 | series | string | Serie del documento (p. ej., FAC, A, NV) que agrupa folios consecutivos | Opcional |
 | folio | number | Folio consecutivo que, junto con la serie, forma el número oficial del documento | Obligatorio, debe ser un entero positivo |
 | startDate | string | Fecha de inicio en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
@@ -117,18 +119,64 @@ Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un 
 | lot_id | string | Lote del artículo movido | Opcional, debe referenciar el id de un lote del mismo artículo |
 | document_id | string | Documento que origina el movimiento | Opcional, debe referenciar el id de un documento existente |
 | type | string | Tipo de movimiento: entrada, salida, traslado o ajuste | Obligatorio |
-| quantity | number | Cantidad movida | Obligatorio, debe ser un entero positivo (el signo lo determina el tipo) |
+| direction | string | Signo del efecto en el saldo: `in` (suma) o `out` (resta) | Obligatorio; entrada=`in`, salida=`out`, traslado por la pierna (origen=`out`, destino=`in`), ajuste=`in`\|`out` según la corrección |
+| transferId | string | Clave del traslado al que pertenece esta pierna (solo type=traslado) | Obligatorio cuando type=traslado; debe referenciar el id de un traslado existente |
+| leg | string | Pierna del traslado: `origin` o `destination` | Obligatorio cuando type=traslado |
+| returnId | string | Devolución que originó este ajuste (solo ajustes generados por una devolución) | Opcional; debe referenciar el id de una devolución existente |
+| quantity | number | Cantidad movida | Obligatorio, debe ser un entero positivo (el signo lo determina `direction`) |
 | unitCost | number | Costo unitario del movimiento | Opcional, debe ser un número no negativo |
 | movementDate | string | Fecha del movimiento en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
 | notes | string | Notas u observaciones del movimiento | Opcional |
+| status | string | Estado actual del movimiento en su ciclo de vida (HU 12) | Opcional; con ciclo de vida configurado debe ser una transición válida y se registra junto con `statusChangedAt`; sin ciclo de vida, permanece como texto libre (FR-031) |
+| statusChangedAt | string | Marca de tiempo de la última transición de estado del movimiento | Opcional; se actualiza cada vez que cambia `status` |
 | createdAt | string | Marca de tiempo de cuándo se creó el movimiento | Obligatorio |
+
+## Entidad: Transfer (encabezado de traslado)
+
+Representa un traslado entre dos bodegas distintas. Cada línea del traslado se materializa como dos movimientos `traslado` (pierna de origen y pierna de destino) que comparten el `transferId`; el encabezado mantiene la referencia y el estado del conjunto.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único del traslado | Obligatorio, generado automáticamente |
+| reference | string | Referencia visible del traslado (p. ej., TR-0001) | Obligatorio, generado automáticamente, único |
+| origin_warehouse_id | string | Bodega de origen | Obligatorio; debe referenciar una bodega existente, activa y distinta del destino |
+| destination_warehouse_id | string | Bodega de destino | Obligatorio; debe referenciar una bodega existente, activa y distinta del origen |
+| date | string | Fecha del traslado en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
+| notes | string | Notas u observaciones del traslado | Opcional |
+| status | string | Estado del ciclo de vida del traslado (HU 12) | Obligatorio; inicia en el primer estado del ciclo configurado y solo cambia por transiciones permitidas |
+| statusChangedAt | string | Marca de tiempo de la última transición de estado | Opcional; se actualiza en cada transición |
+| createdAt | string | Marca de tiempo de cuándo se creó el traslado | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización del traslado | Opcional |
+
+Las líneas del traslado no se duplican en una tabla propia: cada línea queda representada por su par de movimientos `traslado` (pierna `origin` con `direction=out` y pierna `destination` con `direction=in`), ambos con el mismo `entity_id`, `quantity`, `lot_id` opcional y `transferId`.
+
+## Entidad: Return (devolución)
+
+Representa la devolución de cantidad despachada hacia la bodega de origen, vinculada al movimiento o traslado original. Los efectos de stock se materializan como movimientos `ajuste` cuando la devolución pasa a "Recibida en bodega".
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único de la devolución | Obligatorio, generado automáticamente |
+| movement_kind | string | Tipo de referencia: `movement` (salida) o `transfer` (traslado) | Obligatorio; uno de los dos valores |
+| movement_id | string | Referencia al movimiento original o al id del traslado original | Obligatorio; según `movement_kind` debe existir la salida (en estado final de entrega) o el traslado (en estado `Recibido`) |
+| entity_id | string | Artículo devuelto; obligatorio cuando el traslado original tiene varias líneas | Opcional para salidas (se deriva del movimiento) |
+| warehouse_id | string | Bodega de origen a la que regresa la mercancía | Opcional; se deriva del original |
+| reason | string | Motivo de la devolución | Obligatorio; debe pertenecer a la lista controlada (Dañado, Error de pedido, Rechazo del cliente, Vencido) |
+| quantity_good | number | Cantidad en condiciones devuelta a bodega | Obligatorio, entero no negativo |
+| quantity_damaged | number | Cantidad dañada o merma (no afecta stock) | Obligatorio, entero no negativo |
+| notes | string | Notas u observaciones | Opcional |
+| status | string | Estado del ciclo de vida de la devolución (HU 14) | Obligatorio; inicia en `Solicitada` y solo cambia por transiciones permitidas |
+| statusChangedAt | string | Marca de tiempo de la última transición de estado | Opcional |
+| stockApplied | boolean | Indica si los ajustes de stock ya fueron generados | Obligatorio; solo se vuelve verdadero al pasar a `Recibida en bodega` |
+| createdAt | string | Marca de tiempo de cuándo se creó la devolución | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización | Opcional |
 
 ## Reglas de ModuleConfig
 
 - La configuración se carga una vez al arrancar y se aplica en todas las pantallas.
-- Cuando la configuración está ausente, se aplican los valores predeterminados integrados: etiquetas Entidad/Documento, sin campos personalizados, estado de texto libre, color de acento predeterminado.
+- Cuando la configuración está ausente, se aplican los valores predeterminados integrados del módulo Logística e Inventario: etiquetas Productos/Movimientos/Bodegas, sin campos personalizados, estado de texto libre, color de acento predeterminado.
 - Los valores inválidos o conflictivos deben informarse con claridad en lugar de fallar silenciosamente.
-- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `taxId`, `email`, `phone`, `address`, `category`, `description`, `targetDate`, `creditLimit`, `paymentTerms`, `series`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`).
+- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `taxId`, `email`, `phone`, `address`, `category`, `description`, `targetDate`, `creditLimit`, `paymentTerms`, `stockMin`, `series`, `type`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`, `statusChangedAt`, `warehouse_id`, `movementDate`, `direction`, `transferId`, `leg`, `lot_id`, `reason`, `quantity_good`, `quantity_damaged`).
 - Los valores de campos personalizados se persisten junto a los campos base sin cambios de esquema en el almacenamiento.
 - Un ciclo de vida configurado reemplaza la entrada de estado de texto libre; sin uno, el estado permanece como texto libre.
 
@@ -177,6 +225,23 @@ Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un 
 - El tipo debe ser uno de: entrada, salida, traslado o ajuste.
 - Una salida no puede dejar el saldo del artículo en el almacén por debajo de cero.
 - Los movimientos no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
+- Cuando hay un ciclo de vida configurado, el `status` de un movimiento solo puede cambiar mediante transiciones permitidas y el cambio registra su fecha en `statusChangedAt`.
+- Un movimiento con `status` `Cancelado` (o anulado) no altera el saldo, aunque sea visible en el historial.
+- Solo el módulo crea movimientos `traslado`, siempre como par de piernas vinculadas a un traslado existente.
+
+### Traslado
+
+- El traslado debe tener origen y destino distintos; ambas bodegas deben existir y estar activas al crearlo y al despacharlo.
+- Cada línea debe indicar un artículo existente y una cantidad entero positiva; no se permiten líneas duplicadas por artículo.
+- El saldo disponible en la bodega de origen debe ser suficiente al crear y al despachar el traslado.
+- El efecto en el saldo lo gobierna el ciclo de vida (HU 12): la pierna de origen descuenta al despachar y la pierna de destino suma al recibir; cancelar un traslado en `Solicitado` no altera saldo.
+
+### Devolución
+
+- La cantidad total (`quantity_good` + `quantity_damaged`) no puede superar la cantidad despachada menos las devoluciones previas no rechazadas del mismo original.
+- El motivo debe pertenecer a la lista controlada de motivos.
+- La merma (`quantity_damaged`) nunca altera el stock; solo `quantity_good` genera ajustes al recibir.
+- Los ajustes generados son movimientos `ajuste` inmutables que apuntan a la devolución mediante `returnId` y solo se crean una vez.
 
 ## Relaciones
 
@@ -189,8 +254,10 @@ Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un 
 - Cuando se elimina un documento, sus partidas también se eliminan.
 - Cada lote pertenece exactamente a un artículo (una entidad).
 - Cada movimiento de inventario referencia un artículo y un almacén, y opcionalmente un lote y un documento.
-- El saldo de un artículo por almacén (y por lote) es la suma de sus movimientos.
+- El saldo de un artículo por almacén (y por lote) es la suma de sus movimientos efectivos.
 - Una entidad que tenga movimientos de inventario no puede eliminarse, para conservar el historial del inventario.
+- Un traslado encabeza dos movimientos por línea (origen y destino) que comparten `transferId` y reflejan el mismo estado que el encabezado.
+- Una devolución referencia exactamente una salida o un traslado y, al recibir, genera los movimientos `ajuste` que restauran stock en la bodega de origen.
 
 ## Notas de Extensibilidad
 

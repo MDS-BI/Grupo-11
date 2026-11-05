@@ -5,13 +5,13 @@
 
 ## Resumen
 
-Construir una aplicación web ligera con Vite que sirva como módulo base de software de planificación de recursos empresariales (ERP). El módulo proporciona la base común que todo módulo ERP personalizado necesita: gestión de datos maestros (Entidades), documentos transaccionales vinculados (Documentos), flujos de crear/editar/eliminar/buscar, validación y persistencia local — construida principalmente con HTML, CSS y JavaScript vanilla. La aplicación se presenta como un espacio de trabajo ERP coherente: una barra superior con marca (logotipo derivado + nombre del módulo) y una barra lateral persistente de botones de módulo envuelven cada pantalla, y la pantalla de entrada es un panel estilo ERP que ofrece botones de acción rápida para las tareas clave (nueva entidad, nuevo documento, abrir áreas de gestión, buscar registros) además de estadísticas de registros en vivo. La adaptación a un módulo específico (p. ej., Ventas) se realiza mediante un único archivo de configuración (`src/module-config.js`) que cubre terminología, campos personalizados, ciclo de vida de documentos y color de acento, de modo que el código central permanece intacto.
+Construir una aplicación web ligera con Vite que sirva como módulo base de software de planificación de recursos empresariales (ERP). El módulo proporciona la base común que todo módulo ERP personalizado necesita: gestión de datos maestros (Entidades), documentos transaccionales vinculados (Documentos), flujos de crear/editar/eliminar/buscar, validación y persistencia local — construida principalmente con HTML, CSS y JavaScript vanilla. La aplicación se presenta como un espacio de trabajo ERP coherente: una barra superior con marca (logotipo derivado + nombre del módulo) y una barra lateral persistente de botones de módulo envuelven cada pantalla, y la pantalla de entrada es un panel estilo ERP que ofrece botones de acción rápida para las tareas clave (nueva entidad, nuevo documento, abrir áreas de gestión, buscar registros) además de estadísticas de registros en vivo. La adaptación a un módulo específico (p. ej., Ventas) se realiza mediante un único archivo de configuración (`src/module-config.js`) que cubre terminología, campos personalizados, ciclo de vida de documentos y color de acento, de modo que el código central permanece intacto. El módulo se distribuye con la configuración de **Logística e Inventario** cargada por defecto (Producto, Bodega, Movimiento) e incorpora, además del CRUD base de entidades y documentos, bodegas con activación/desactivación, movimientos de inventario con saldo derivado, control de lotes con FEFO, kárdex por producto, stock mínimo, traslados entre bodegas como dos movimientos vinculados y devoluciones con merma.
 
 ## Contexto Técnico
 
 **Lenguaje/Versión**: JavaScript ES2022 (sin framework, sin backend)  
 **Dependencias Principales**: Vite ^8.2.1 (dev server + build)  
-**Almacenamiento**: `localStorage` del navegador (claves `erp_base_module:entities` y `erp_base_module:documents`)  
+**Almacenamiento**: `localStorage` del navegador (claves `erp_base_module:entities`, `erp_base_module:documents`, `erp_base_module:warehouses`, `erp_base_module:lots`, `erp_base_module:movements` y `erp_base_module:returns`)  
 **Pruebas**: Vitest ^4.1.10 + jsdom ^30.0.1 (`npm test` / `npx vitest run`)  
 **Plataforma Objetivo**: SPA web en navegador moderno (evergreen), escritorio y móvil  
 **Tipo de Proyecto**: web-app frontend-only (módulo base ERP personalizable)  
@@ -56,21 +56,28 @@ src/
 ├── module-config.js
 ├── styles.css
 └── components/
-    ├── shell.js          (marco del espacio de trabajo: barra superior, logotipo SVG, barra lateral, estado de módulo activo)
+    ├── shell.js          (marco del espacio de trabajo: barra superior, logotipo SVG, barra lateral con Panel, Productos, Movimientos, Bodegas y Buscar, estado de módulo activo)
     ├── dashboard.js      (vista de inicio: cuadrícula de acciones rápidas + tarjetas de estadísticas en vivo)
-    ├── entity-list.js    (listado de entidades con búsqueda y acciones)
-    ├── entity-form.js    (formulario de creación/edición de entidades con campos personalizados)
-    ├── document-list.js  (listado de documentos con ciclo de vida de estados)
-    ├── document-form.js  (formulario de creación/edición de documentos con campos personalizados y ciclo de vida de estados)
+    ├── entity-list.js    (listado de productos/entidades con búsqueda, marca de stock bajo y acciones)
+    ├── entity-form.js    (formulario de creación/edición de productos con campos personalizados y stock mínimo)
+    ├── document-list.js  (lista de documentos de respaldo por producto con ciclo de vida de estados)
+    ├── document-form.js  (formulario de documentos de respaldo con campos personalizados y ciclo de vida de estados)
     ├── custom-fields.js  (renderizado y validación de campos personalizados)
-    └── search-bar.js     (búsqueda global de registros)
+    ├── search-bar.js     (pantalla de búsqueda de registros con filtros combinados)
+    ├── warehouse-list.js (lista y formulario de bodegas con estado activa/desactivada)
+    ├── movement-form.js  (formulario de movimientos de inventario: entrada, salida, traslado, ajuste)
+    ├── movement-list.js  (lista de movimientos con saldo por almacén y etiqueta de estado)
+    ├── kardex-view.js    (historial de movimientos de un producto con saldo acumulado y filtros)
+    ├── lot-list.js       (lotes por producto con marcado de vencidos, abierta desde la gestión del producto)
+    ├── transfer-form.js  (traslados entre bodegas con líneas de producto)
+    └── return-form.js    (devoluciones sobre movimientos entregados o recibidos, con merma)
 
 tests/
 ├── unit/
 │   ├── storage.test.js
 │   └── module-config.test.js
 └── integration/
-    └── [pruebas por journey: CRUD entidades, documentos, búsqueda, tabs, relabeling, dashboard, shell]
+    └── [pruebas por journey: CRUD entidades, documentos, bodegas, movimientos, kárdex, lotes, stock bajo, búsqueda, relabeling, dashboard, shell, ciclo de vida, traslados, devoluciones]
 ```
 
 **Decisión de Estructura**: Una aplicación Vite simple con un único punto de entrada HTML, un pequeño conjunto de módulos JavaScript y CSS en un archivo separado. Se usará localStorage para la persistencia de modo que la aplicación permanezca ligera y autónoma. Los componentes se dividen en pares de entidad (datos maestros) y documento (transaccional) que reflejan los dos conceptos centrales del módulo base, de modo que un módulo personalizado pueda renombrar o extender cada par de forma independiente. `shell.js` posee el marco del espacio de trabajo ERP — un logotipo monograma SVG en línea derivado del nombre del módulo, la barra superior y la barra lateral de módulos — envolviendo todas las vistas para que la marca y la navegación permanezcan consistentes sin duplicar marcado. `dashboard.js` renderiza los botones de acción rápida y las tarjetas de estadísticas de la pantalla de entrada, leyendo los recuentos del almacenamiento cada vez que se vuelve visible. `module-config.js` centraliza todos los puntos de adaptación — nombre del módulo, etiquetas de términos, definiciones de campos personalizados, ciclo de vida de estados y color de acento — manteniendo la personalización del dominio fuera del código central; el estilo se controla mediante propiedades personalizadas de CSS (tokens de diseño) en `styles.css` para que el color de acento configurado se aplique globalmente.

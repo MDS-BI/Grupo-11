@@ -3,12 +3,16 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { normalizeConfig } from '../../src/module-config.js';
+import { loadEntities } from '../../src/storage.js';
 
 const html = fs.readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
 
 let dom;
+let app;
 
-function qs(id){ return document.getElementById(id); }
+function qs(id) {
+  return document.getElementById(id);
+}
 
 beforeEach(async () => {
   dom = new JSDOM(html, { url: 'http://localhost/' });
@@ -20,75 +24,86 @@ beforeEach(async () => {
   globalThis.confirm = vi.fn(() => true);
   w.scrollTo = vi.fn();
   w.localStorage.clear();
+  vi.resetModules();
+  app = await import('../../src/app.js');
 });
 
 afterEach(() => {
   dom.window.close();
 });
 
-async function bootWith(configOverride){
-  vi.resetModules();
-  const { initApp } = await import('../../src/app.js');
-  await initApp(normalizeConfig(configOverride));
+function submitForm() {
+  qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
 }
 
-describe('User Story 6 - relabel screens from configuration', () => {
-  it('shows default Entidad/Documento terms everywhere when no mappings are provided', async () => {
-    await bootWith(undefined);
-    expect(qs('brand-name').textContent).toBe('Módulo Base ERP');
-    expect(qs('nav-entities-label').textContent).toBe('Entidades');
-    expect(qs('nav-documents-label').textContent).toBe('Documentos');
-    expect(qs('action-new-entity-title').textContent).toBe('Nueva Entidad');
-    qs('nav-entities').click();
-    expect(qs('entity-form-heading').textContent).toBe('Agregar / Editar Entidad');
-    expect(qs('delete-entity').textContent).toBe('Eliminar la entidad seleccionada');
-    qs('nav-search').click();
-    expect(qs('search-view-heading').textContent).toBe('Buscar Entidades');
+describe('Historia de Usuario 13 - reetiquetado desde la configuración (FR-029, XR-002)', () => {
+  it('habla la terminología por defecto de Logística e Inventario en todas las pantallas', async () => {
+    await app.initApp(normalizeConfig(undefined));
+    expect(qs('brand-name').textContent).toBe('Logística e Inventario');
+    expect(qs('nav-dashboard-label').textContent).toBe('Panel');
+    expect(qs('nav-entities-label').textContent).toBe('Productos');
+    expect(qs('nav-movements-label').textContent).toBe('Movimientos');
+    expect(qs('nav-warehouses-label').textContent).toBe('Bodegas');
+    expect(qs('nav-search-label').textContent).toBe('Buscar');
+
+    app.navigate('entities');
+    expect(qs('view-entities').querySelector('h1').textContent).toBe('Productos');
+    expect(qs('entity-form-title').textContent).toBe('Nuevo Producto');
+    expect(qs('btn-new-entity').textContent).toBe('Nuevo producto');
+    expect(qs('entity-list-empty').hidden).toBe(false);
+    expect(qs('entity-list-empty').textContent).toBe('No hay Productos todavía.');
+
+    qs('name').value = 'Papel';
+    qs('code').value = 'P-1';
+    submitForm();
+    expect(qs('entity-form-feedback').textContent).toBe('Producto guardado correctamente.');
+    expect(qs('entity-list-empty').hidden).toBe(true);
+    expect(loadEntities().length).toBe(1);
   });
 
-  it('uses configured terms on every screen without altering navigation behavior', async () => {
-    await bootWith({
-      moduleName: 'Ventas',
-      labels: { entity: 'Cliente', entities: 'Clientes', document: 'Pedido de Venta', documents: 'Pedidos de Venta' }
-    });
-    expect(document.title).toBe('Ventas');
+  it('aplica los términos configurados a barra lateral, formularios, listas y mensajes', async () => {
+    await app.initApp(
+      normalizeConfig({
+        moduleName: 'Ventas',
+        labels: {
+          entity: 'Cliente',
+          entities: 'Clientes',
+          movement: 'Pedido',
+          movements: 'Pedidos',
+          warehouse: 'Sucursal',
+          warehouses: 'Sucursales',
+        },
+      })
+    );
     expect(qs('brand-name').textContent).toBe('Ventas');
-    expect(qs('dashboard-heading').textContent).toBe('Ventas');
     expect(qs('nav-entities-label').textContent).toBe('Clientes');
-    expect(qs('nav-documents-label').textContent).toBe('Pedidos de Venta');
-    expect(qs('action-new-entity-title').textContent).toBe('Nuevo Cliente');
-    expect(qs('action-new-document-title').textContent).toBe('Nuevo Pedido de Venta');
+    expect(qs('nav-movements-label').textContent).toBe('Pedidos');
+    expect(qs('nav-warehouses-label').textContent).toBe('Sucursales');
+    expect(qs('nav-entities-label').textContent).toBe('Clientes');
 
-    qs('nav-entities').click();
-    expect(qs('entities-view-heading').textContent).toBe('Clientes');
-    expect(qs('entity-form-heading').textContent).toBe('Agregar / Editar Cliente');
-    expect(qs('edit-entity-heading').textContent).toBe('Editar o eliminar el cliente');
-    expect(qs('delete-entity').textContent).toBe('Eliminar el cliente seleccionado');
+    app.navigate('entities');
+    expect(qs('view-entities').querySelector('h1').textContent).toBe('Clientes');
+    expect(qs('entity-form-title').textContent).toBe('Nuevo Cliente');
+    expect(qs('btn-new-entity').textContent).toBe('Nuevo cliente');
 
-    qs('nav-documents').click();
-    expect(qs('documents-view-heading').textContent).toBe('Pedidos de Venta');
-    expect(qs('document-form-heading').textContent).toBe('Agregar / Editar Pedido de Venta');
-    expect(qs('edit-document-heading').textContent).toBe('Editar o eliminar el pedido de venta');
-    expect(qs('delete-document').textContent).toBe('Eliminar el pedido de venta seleccionado');
+    qs('name').value = 'Acme';
+    qs('code').value = 'AC-1';
+    submitForm();
+    expect(qs('entity-form-feedback').textContent).toBe('Cliente guardado correctamente.');
+    expect(qs('entity-list').textContent).toContain('Acme');
+    expect(loadEntities().length).toBe(1);
 
-    qs('nav-search').click();
-    expect(qs('search-view-heading').textContent).toBe('Buscar Clientes');
-    expect(qs('search-empty').textContent).toContain('coincidencias');
+    const { deleteEntity } = await import('../../src/storage.js');
+    deleteEntity(loadEntities()[0].id);
+    app.navigate('dashboard');
+    app.navigate('entities');
+    expect(qs('entity-list-empty').textContent).toBe('No hay Clientes todavía.');
   });
 
-  it('keeps navigation behavior unchanged after relabeling', async () => {
-    await bootWith({ labels: { entity: 'Producto', entities: 'Productos', document: 'Orden', documents: 'Órdenes' } });
-    qs('nav-entities').click();
-    expect(qs('view-entities').hidden).toBe(false);
-    qs('nav-documents').click();
-    expect(qs('view-entities').hidden).toBe(true);
-    expect(qs('view-documents').hidden).toBe(false);
-    qs('nav-dashboard').click();
-    expect(qs('view-dashboard').hidden).toBe(false);
-  });
-
-  it('derives the logo monogram from the configured module name', async () => {
-    await bootWith({ moduleName: 'Warehouse Pro' });
-    expect(qs('logo-mark').querySelector('svg text').textContent).toBe('WP');
+  it('deriva las etiquetas de navegación y acciones rápidas cuando no se proporcionan', async () => {
+    await app.initApp(normalizeConfig({ labels: { entity: 'Producto terminado', entities: 'Productos terminados' } }));
+    expect(qs('nav-entities-label').textContent).toBe('Productos terminados');
+    app.navigate('entities');
+    expect(qs('btn-new-entity').textContent).toBe('Nuevo producto terminado');
   });
 });

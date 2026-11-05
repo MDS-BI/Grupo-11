@@ -9,13 +9,15 @@ const html = fs.readFileSync(fileURLToPath(new URL('../../index.html', import.me
 
 let dom;
 
-function qs(id){ return document.getElementById(id); }
+function qs(id) {
+  return document.getElementById(id);
+}
 
 const configWithFields = {
   customFields: [
     { target: 'entity', key: 'ingresosAnuales', label: 'Ingresos anuales', type: 'number', required: true },
-    { target: 'entity', key: 'region', label: 'Región', type: 'select', options: ['EMEA', 'APAC'] }
-  ]
+    { target: 'entity', key: 'region', label: 'Región', type: 'select', options: ['EMEA', 'APAC'] },
+  ],
 };
 
 beforeEach(async () => {
@@ -34,95 +36,74 @@ afterEach(() => {
   dom.window.close();
 });
 
-async function bootWith(configOverride){
+async function bootWith(configOverride) {
   vi.resetModules();
-  const { initApp } = await import('../../src/app.js');
+  const { initApp, navigate } = await import('../../src/app.js');
   await initApp(normalizeConfig(configOverride ?? configWithFields));
+  navigate('entities');
 }
 
-describe('User Story 7 - declare custom fields for records', () => {
-  it('renders declared fields with the correct input types on the entity form', async () => {
+function submitForm() {
+  qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+}
+
+describe('Historia de Usuario 1 - campos personalizados declarados (FR-026, FR-027, FR-028)', () => {
+  it('renderiza los campos declarados con los tipos de entrada correctos', async () => {
     await bootWith();
-    qs('nav-entities').click();
     const numberInput = qs('cf-ingresosAnuales');
     expect(numberInput).not.toBeNull();
     expect(numberInput.getAttribute('type')).toBe('number');
-    expect(numberInput.closest('.custom-field').querySelector('label').textContent).toBe('Ingresos anuales *');
+    expect(numberInput.closest('.custom-field').querySelector('label').textContent).toBe(
+      'Ingresos anuales *'
+    );
     const select = qs('cf-region');
     expect(select.tagName).toBe('SELECT');
-    expect([...select.options].map(o => o.value)).toEqual(['', 'EMEA', 'APAC']);
+    expect([...select.options].map((o) => o.value)).toEqual(['', 'EMEA', 'APAC']);
   });
 
-  it('blocks saving when a required custom field is blank and explains why', async () => {
+  it('bloquea el guardado con un campo personalizado obligatorio en blanco y explica por qué', async () => {
     await bootWith();
-    qs('nav-entities').click();
     qs('name').value = 'Acme';
     qs('code').value = 'AC-001';
-    qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+    submitForm();
     expect(loadEntities().length).toBe(0);
     expect(qs('error-cf-ingresosAnuales').textContent).toContain('obligatorio');
   });
 
-  it('persists custom values and displays them in search results with labels', async () => {
+  it('persiste los valores personalizados y los muestra en la lista con sus etiquetas', async () => {
     await bootWith();
-    qs('nav-entities').click();
     qs('name').value = 'Acme';
     qs('code').value = 'AC-001';
     qs('cf-ingresosAnuales').value = '5000';
     qs('cf-region').value = 'EMEA';
-    qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+    submitForm();
     const saved = loadEntities()[0];
     expect(saved.ingresosAnuales).toBe(5000);
     expect(saved.region).toBe('EMEA');
 
-    qs('nav-search').click();
-    qs('search-input').value = 'emea';
-    qs('search-input').dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-    const items = [...qs('search-results-list').querySelectorAll('.entity-item')];
-    expect(items.length).toBe(1);
-    expect(items[0].textContent).toContain('Región: EMEA');
+    const item = qs('entity-list').querySelector('.record-item');
+    expect(item.textContent).toContain('Ingresos anuales: 5000');
+    expect(item.textContent).toContain('Región: EMEA');
   });
 
-  it('renders document select custom fields from configuration', async () => {
-    await bootWith({
-      customFields: [
-        { target: 'document', key: 'metodoEnvio', label: 'Método de envío', type: 'select', options: ['estándar', 'exprés'] }
-      ]
-    });
-    qs('nav-entities').click();
-    qs('nav-documents').click();
-    const select = qs('cf-metodoEnvio');
-    expect(select).not.toBeNull();
-    expect(select.tagName).toBe('SELECT');
-    expect([...select.options].map(o => o.textContent)).toEqual(['--', 'estándar', 'exprés']);
+  it('incluye los valores personalizados en la búsqueda (FR-028)', async () => {
+    await bootWith();
+    qs('name').value = 'Acme';
+    qs('code').value = 'AC-001';
+    qs('cf-ingresosAnuales').value = '5000';
+    qs('cf-region').value = 'EMEA';
+    submitForm();
+    expect(searchEntities('emea').length).toBe(1);
+    expect(searchEntities('5000').length).toBe(1);
   });
 
-  it('behaves identically to the unmodified base when no fields are declared', async () => {
+  it('se comporta igual que la base sin campos declarados', async () => {
     await bootWith({});
-    qs('nav-entities').click();
     expect(qs('entity-custom-fields').hidden).toBe(true);
     qs('name').value = 'Acme';
     qs('code').value = 'AC-001';
-    qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+    submitForm();
     expect(loadEntities().length).toBe(1);
     expect(searchEntities('acme').length).toBe(1);
-  });
-
-  it('populates custom field values when editing an existing entity', async () => {
-    await bootWith();
-    qs('nav-entities').click();
-    qs('name').value = 'Acme';
-    qs('code').value = 'AC-001';
-    qs('cf-ingresosAnuales').value = '750';
-    qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
-
-    const select = qs('edit-entity');
-    select.value = select.options[1].value;
-    select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
-    expect(qs('cf-ingresosAnuales').value).toBe('750');
-
-    qs('cf-ingresosAnuales').value = '900';
-    qs('entity-form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
-    expect(loadEntities()[0].ingresosAnuales).toBe(900);
   });
 });

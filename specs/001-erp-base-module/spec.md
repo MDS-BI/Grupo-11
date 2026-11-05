@@ -425,8 +425,8 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-010**: El sistema DEBE mostrar un panel de inicio como vista inicial, con botones de acción rápida claramente etiquetados para las tareas ERP clave.
 - **FR-011**: El sistema DEBE envolver cada pantalla en un marco de espacio de trabajo persistente compuesto por una barra superior con marca y una barra lateral de navegación de módulos.
 - **FR-012**: La barra lateral DEBE proporcionar botones de módulo para Panel, Productos, Movimientos, Bodegas y Buscar, etiquetados desde la configuración del módulo.
-- **FR-013**: El botón de módulo Entidades DEBE mostrar el contenido de gestión de entidades.
-- **FR-014**: El botón de módulo Documentos DEBE mostrar el contenido de gestión de documentos en la pantalla de gestión.
+- **FR-013**: El botón de módulo Productos DEBE mostrar el contenido de gestión de productos (entidades).
+- **FR-014**: El botón de módulo Movimientos DEBE mostrar el contenido de gestión de movimientos de inventario; los documentos de respaldo se gestionan desde el producto (HU10).
 - **FR-015**: El botón de módulo Panel DEBE devolver al usuario al panel de inicio.
 - **FR-016**: La pantalla de gestión NO DEBE mostrar la lista de entidades.
 - **FR-017**: La pantalla de gestión DEBE proporcionar la funcionalidad de crear, editar y eliminar entidades.

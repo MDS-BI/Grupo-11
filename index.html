@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Módulo de Logística e Inventario - ERP</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace-content">Saltar al contenido principal</a>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span id="logo-mark" class="logo-mark" aria-hidden="true"></span>
+          <span id="brand-name" class="brand-name"></span>
+        </div>
+      </header>
+      <div class="workspace">
+        <aside class="sidebar" id="sidebar" aria-label="Módulos">
+          <nav class="sidebar-nav" aria-label="Navegación de módulos">
+            <button class="nav-module" id="nav-dashboard" data-module="dashboard" type="button">
+              <span class="nav-icon" aria-hidden="true">▦</span>
+              <span class="nav-label" id="nav-dashboard-label">Panel</span>
+            </button>
+            <button class="nav-module" id="nav-entities" data-module="entities" type="button">
+              <span class="nav-icon" aria-hidden="true">▤</span>
+              <span class="nav-label" id="nav-entities-label">Productos</span>
+            </button>
+            <button class="nav-module" id="nav-movements" data-module="movements" type="button">
+              <span class="nav-icon" aria-hidden="true">⇅</span>
+              <span class="nav-label" id="nav-movements-label">Movimientos</span>
+            </button>
+            <button class="nav-module" id="nav-warehouses" data-module="warehouses" type="button">
+              <span class="nav-icon" aria-hidden="true">⌂</span>
+              <span class="nav-label" id="nav-warehouses-label">Bodegas</span>
+            </button>
+            <button class="nav-module" id="nav-search" data-module="search" type="button">
+              <span class="nav-icon" aria-hidden="true">⌕</span>
+              <span class="nav-label" id="nav-search-label">Buscar</span>
+            </button>
+          </nav>
+        </aside>
+        <main id="workspace-content" tabindex="-1">
+          <section id="view-dashboard" hidden></section>
+          <section id="view-entities" hidden></section>
+          <section id="view-movements" hidden></section>
+          <section id="view-warehouses" hidden></section>
+          <section id="view-search" hidden></section>
+          <section id="view-product" hidden></section>
+          <section id="view-kardex" hidden></section>
+          <section id="view-lots" hidden></section>
+          <section id="view-transfers" hidden></section>
+          <section id="view-documents" hidden></section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,169 +1,138 @@
-import { describe, it, expect } from 'vitest';
-import { DEFAULT_CONFIG, BASE_FIELDS, FIELD_TYPES, normalizeConfig, loadModuleConfig, setActiveConfig, getConfig, labelFor } from '../../src/module-config.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  normalizeConfig,
+  setActiveConfig,
+  getActiveConfig,
+  DEFAULT_ACCENT,
+} from '../../src/module-config.js';
 
-const salesConfig = {
-  moduleName: 'Ventas',
-  labels: { entity: 'Cliente', entities: 'Clientes', document: 'Pedido de Venta', documents: 'Pedidos de Venta' },
-  customFields: [
-    { target: 'entity', key: 'riesgo', label: 'Riesgo', type: 'number', required: true },
-    { target: 'document', key: 'metodoEnvio', label: 'Método de envío', type: 'select', options: ['estándar', 'exprés'] }
-  ],
-  statusLifecycle: {
-    statuses: ['cotización', 'pedido', 'facturado'],
-    transitions: { cotización: ['pedido'], pedido: ['facturado'], facturado: [] }
-  }
-};
-
-describe('module-config', () => {
-  it('falls back to built-in defaults when no configuration is provided', () => {
-    const { config, errors } = normalizeConfig(null);
-    expect(errors).toEqual([]);
-    expect(config).toEqual(DEFAULT_CONFIG);
+describe('module config loading (FR-023, FR-024, FR-025, FR-038)', () => {
+  beforeEach(() => {
+    setActiveConfig(normalizeConfig(undefined));
   });
 
-  it('returns defaults for undefined configuration too', () => {
-    const { config, errors } = normalizeConfig(undefined);
-    expect(errors).toEqual([]);
-    expect(config.moduleName).toBe(DEFAULT_CONFIG.moduleName);
+  it('falls back to the built-in Logística e Inventario defaults without configuration', () => {
+    const config = normalizeConfig(undefined);
+    expect(config.moduleName).toBe('Logística e Inventario');
+    expect(config.labels.entity).toBe('Producto');
+    expect(config.labels.entities).toBe('Productos');
+    expect(config.labels.movement).toBe('Movimiento');
+    expect(config.labels.warehouse).toBe('Bodega');
+    expect(config.labels.nav).toEqual({
+      dashboard: 'Panel',
+      entities: 'Productos',
+      movements: 'Movimientos',
+      warehouses: 'Bodegas',
+      search: 'Buscar',
+    });
+    expect(config.labels.quickActions).toEqual({
+      newEntity: 'Nuevo producto',
+      newMovement: 'Nuevo movimiento',
+      manageEntities: 'Gestionar productos',
+      searchRecords: 'Buscar registros',
+    });
+    expect(config.theme.accentColor).toBe(DEFAULT_ACCENT);
+    expect(config.customFields).toEqual([]);
+    expect(config.errors).toEqual([]);
   });
 
-  it('accepts a complete sales-style profile', () => {
-    const { config, errors } = normalizeConfig(salesConfig);
-    expect(errors).toEqual([]);
+  it('merges a partial configuration over the defaults', () => {
+    const config = normalizeConfig({
+      moduleName: 'Ventas',
+      labels: { entity: 'Cliente', entities: 'Clientes' },
+      theme: { accentColor: '#0f62fe' },
+    });
     expect(config.moduleName).toBe('Ventas');
     expect(config.labels.entity).toBe('Cliente');
-    expect(config.customFields.length).toBe(2);
-    expect(config.statusLifecycle.statuses).toEqual(['cotización', 'pedido', 'facturado']);
+    expect(config.labels.entities).toBe('Clientes');
+    expect(config.labels.document).toBe('Documento de respaldo');
+    expect(config.labels.nav.search).toBe('Buscar');
+    expect(config.theme.accentColor).toBe('#0f62fe');
+    expect(config.errors).toEqual([]);
   });
 
-  it('reports an invalid module name instead of failing silently', () => {
-    const { errors } = normalizeConfig({ moduleName: '' });
-    expect(errors.some(e => e.includes('moduleName'))).toBe(true);
+  it('rejects an invalid accent color, falls back and reports the error clearly', () => {
+    const config = normalizeConfig({ theme: { accentColor: 'not-a-color' } });
+    expect(config.theme.accentColor).toBe(DEFAULT_ACCENT);
+    expect(config.errors.length).toBeGreaterThan(0);
+    expect(config.errors.join(' ')).toMatch(/accentColor/i);
   });
 
-  it('rejects unknown custom field types', () => {
-    const { errors } = normalizeConfig({
-      customFields: [{ target: 'entity', key: 'x', label: 'X', type: 'floaty' }]
+  it('drops custom fields whose key collides with a base field name', () => {
+    const config = normalizeConfig({
+      customFields: [
+        { target: 'entity', key: 'name', label: 'Nombre', type: 'text' },
+        { target: 'entity', key: 'unidadMedida', label: 'Unidad', type: 'text' },
+      ],
     });
-    expect(errors.some(e => e.includes('type'))).toBe(true);
+    expect(config.customFields.map((f) => f.key)).toEqual(['unidadMedida']);
+    expect(config.errors.join(' ')).toMatch(/unidadMedida|colis/i);
   });
 
-  it('rejects custom field keys colliding with base fields', () => {
-    for(const base of BASE_FIELDS.entity){
-      const { errors } = normalizeConfig({
-        customFields: [{ target: 'entity', key: base, label: 'X', type: 'text' }]
-      });
-      if(base === 'id'){
-        // id is a base field; collision must be reported
-        expect(errors.length).toBeGreaterThan(0);
-        break;
-      }
-    }
-    const { errors } = normalizeConfig({
-      customFields: [{ target: 'entity', key: 'name', label: 'X', type: 'text' }]
+  it('drops custom fields with an unknown declared type', () => {
+    const config = normalizeConfig({
+      customFields: [
+        { target: 'entity', key: 'peso', label: 'Peso', type: 'richtext' },
+        { target: 'entity', key: 'proveedor', label: 'Proveedor', type: 'text' },
+      ],
     });
-    expect(errors.some(e => e.includes('choca con un campo base'))).toBe(true);
+    expect(config.customFields.map((f) => f.key)).toEqual(['proveedor']);
+    expect(config.errors.length).toBeGreaterThan(0);
   });
 
-  it('rejects select fields without options', () => {
-    const { errors } = normalizeConfig({
-      customFields: [{ target: 'document', key: 'terms', label: 'Terms', type: 'select' }]
+  it('drops an invalid lifecycle definition instead of failing silently', () => {
+    const config = normalizeConfig({
+      statusLifecycle: {
+        movements: {
+          traslado: {
+            statuses: ['A', 'B'],
+            transitions: { A: ['C'], B: [] },
+          },
+        },
+      },
     });
-    expect(errors.some(e => e.includes('options'))).toBe(true);
+    expect(config.statusLifecycle.movements.traslado).toBeNull();
+    expect(config.errors.length).toBeGreaterThan(0);
   });
 
-  it('rejects duplicate custom field keys per target', () => {
-    const field = { target: 'entity', key: 'dup', label: 'Dup', type: 'text' };
-    const { errors } = normalizeConfig({ customFields: [field, { ...field }] });
-    expect(errors.some(e => e.includes('más de una vez'))).toBe(true);
-  });
-
-  it('rejects lifecycle transitions referencing unknown statuses', () => {
-    const { errors } = normalizeConfig({
-      statusLifecycle: { statuses: ['a'], transitions: { a: ['ghost'] } }
+  it('keeps a valid configured lifecycle and the returns lifecycle', () => {
+    const config = normalizeConfig({
+      statusLifecycle: {
+        movements: {
+          traslado: {
+            statuses: ['Solicitado', 'Despachado', 'Recibido'],
+            transitions: {
+              Solicitado: ['Despachado'],
+              Despachado: ['Recibido'],
+              Recibido: [],
+            },
+          },
+        },
+      },
     });
-    expect(errors.length).toBeGreaterThan(0);
+    expect(config.statusLifecycle.movements.traslado.statuses).toEqual([
+      'Solicitado',
+      'Despachado',
+      'Recibido',
+    ]);
+    expect(config.statusLifecycle.returns.statuses).toContain('Recibida en bodega');
   });
 
-  it('keeps unspecified labels at their defaults', () => {
-    const { config, errors } = normalizeConfig({ labels: { entity: 'Product' } });
-    expect(errors).toEqual([]);
-    expect(config.labels.entity).toBe('Product');
-    expect(config.labels.documents).toBe(DEFAULT_CONFIG.labels.documents);
+  it('defines the reference lifecycles for orden de compra, traslado and salida', () => {
+    const config = normalizeConfig(undefined);
+    expect(config.statusLifecycle.references['orden-compra'].statuses[0]).toBe('Borrador');
+    expect(config.statusLifecycle.references.traslado.statuses).toContain('En tránsito');
+    expect(config.statusLifecycle.references.salida.statuses).toContain('Preparado');
+    expect(config.statusLifecycle.movements.traslado).not.toBeNull();
+    expect(config.statusLifecycle.movements.salida).toBeNull();
+    expect(config.statusLifecycle.documents['orden-compra']).not.toBeNull();
   });
 
-  it('treats null lifecycle as free-form status', () => {
-    const { config, errors } = normalizeConfig({ statusLifecycle: null });
-    expect(errors).toEqual([]);
-    expect(config.statusLifecycle).toBeNull();
-  });
-
-  it('loadModuleConfig reflects the userConfig slot (null by default)', async () => {
-    const { config, errors } = await loadModuleConfig();
-    expect(errors).toEqual([]);
-    expect(config.moduleName).toBe(DEFAULT_CONFIG.moduleName);
-  });
-
-  it('exposes active config and label helpers after setActiveConfig', () => {
-    const { config } = normalizeConfig(salesConfig);
+  it('stores the active config for the rest of the application', () => {
+    const config = normalizeConfig({ moduleName: 'Almacén Sur' });
     setActiveConfig(config);
-    expect(getConfig().moduleName).toBe('Ventas');
-    expect(labelFor('entity')).toBe('Cliente');
-    expect(labelFor('documents')).toBe('Pedidos de Venta');
-    setActiveConfig(null);
-    expect(labelFor('entity')).toBe('Entidad');
-  });
-
-  it('supports all declared field types', () => {
-    expect(FIELD_TYPES).toContain('text');
-    expect(FIELD_TYPES).toContain('number');
-    expect(FIELD_TYPES).toContain('date');
-    expect(FIELD_TYPES).toContain('select');
-  });
-
-  describe('theme', () => {
-    it('provides a default accent color when no theme is configured', () => {
-      const { config, errors } = normalizeConfig(null);
-      expect(errors).toEqual([]);
-      expect(config.theme.accentColor).toBe(DEFAULT_CONFIG.theme.accentColor);
-    });
-
-    it('accepts a six-digit hex accent color', () => {
-      const { config, errors } = normalizeConfig({ theme: { accentColor: '#0f62fe' } });
-      expect(errors).toEqual([]);
-      expect(config.theme.accentColor).toBe('#0f62fe');
-    });
-
-    it('accepts a three-digit hex accent color', () => {
-      const { config, errors } = normalizeConfig({ theme: { accentColor: '#f0b' } });
-      expect(errors).toEqual([]);
-      expect(config.theme.accentColor).toBe('#f0b');
-    });
-
-    it('accepts uppercase hex digits', () => {
-      const { config, errors } = normalizeConfig({ theme: { accentColor: '#FF8800' } });
-      expect(errors).toEqual([]);
-      expect(config.theme.accentColor).toBe('#FF8800');
-    });
-
-    it('rejects non-hex accent colors and keeps the default', () => {
-      for(const bad of ['blue', '#12345', '123456', '#zzzzzz']){
-        const { config, errors } = normalizeConfig({ theme: { accentColor: bad } });
-        expect(errors.some(e => e.includes('theme.accentColor'))).toBe(true);
-        expect(config.theme.accentColor).toBe(DEFAULT_CONFIG.theme.accentColor);
-      }
-    });
-
-    it('rejects a non-object theme and keeps defaults', () => {
-      const { config, errors } = normalizeConfig({ theme: 'dark' });
-      expect(errors.some(e => e.includes('theme'))).toBe(true);
-      expect(config.theme.accentColor).toBe(DEFAULT_CONFIG.theme.accentColor);
-    });
-
-    it('keeps the default accent when accentColor is omitted', () => {
-      const { config, errors } = normalizeConfig({ theme: {} });
-      expect(errors).toEqual([]);
-      expect(config.theme.accentColor).toBe(DEFAULT_CONFIG.theme.accentColor);
-    });
+    expect(getActiveConfig().moduleName).toBe('Almacén Sur');
+    setActiveConfig(normalizeConfig(undefined));
+    expect(getActiveConfig().moduleName).toBe('Logística e Inventario');
   });
 });
