@@ -2,7 +2,7 @@
 
 **Entrada**: Documentos de diseño desde `/specs/001-erp-base-module/`
 **Prerrequisitos**: plan.md (obligatorio), spec.md (obligatorio para las historias de usuario), research.md, data-model.md, contracts/
-**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia)
+**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia) y `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible)
 **Ajustes tras /speckit.analyze**: añadidas T006 (pruebas de `module-config`, C1) y T024/T027 (reetiquetado FR-029/XR-002, E1)
 
 **Pruebas**: incluidas por historia (Constitución II – Test-First); se ejecutan con `npm test` (Vitest + jsdom).
@@ -343,11 +343,58 @@
 - [X] T082 [US14] Aplicar el ciclo Solicitada → Aprobada → Recibida en bodega → Cerrada y el ajuste de stock al recibirla en src/app.js
 - [X] T083 [US14] Mostrar la cantidad total devuelta en el detalle y la lista del movimiento original en src/components/movement-list.js
 
-**Punto de control**: Todas las historias de usuario deben estar completas y ser comprobables de forma independiente.
+**Punto de control**: Las devoluciones quedan completas y comprobables de forma independiente.
 
 ---
 
-## Fase 17: Pulido y Preocupaciones Transversales
+## Fase 17: Historia de Usuario 15 - Reservar stock para pedidos pendientes (Prioridad: P2)
+
+**Objetivo**: Registrar reservas que reducen el disponible sin alterar el físico, consumirlas al despachar y liberarlas o vencerlas conservando el registro.
+
+**Prueba Independiente**: Reservar 30 de 50 disponibles deja 20; una salida sin referencia de 25 se rechaza; liberar la reserva devuelve el disponible a 50.
+
+### Pruebas para la Historia de Usuario 15
+
+- [ ] T091 [P] [US15] Añadir pruebas de integración de reservas (crear, consumir, liberar total y parcial, vencer al terminar el día, calcular disponible y disponible negativo) en tests/integration/reservations.test.js
+
+### Implementación de la Historia de Usuario 15
+
+- [ ] T092 [US15] Implementar la entidad Reserva con estados Activa, Consumida, Liberada y Vencida, liberación parcial con `releasedQuantity` y expiración perezosa en src/storage.js
+- [ ] T093 [US15] Calcular y exponer el disponible (físico menos saldos pendientes de reservas activas no vencidas) por producto y bodega, incluido el disponible negativo, en src/storage.js (FR-047)
+- [ ] T094 [P] [US15] Crear el formulario de reservas con producto, bodega, cantidad, referencia y expiración, y registrar la ruta `reservations` dentro del módulo Movimientos, en src/components/reservation-form.js y src/app.js
+- [ ] T095 [US15] Mostrar físico, reservado y disponible en las listas, el detalle de producto y el encabezado del kárdex, distinguiendo el disponible negativo, en src/components/entity-list.js y src/components/kardex-view.js
+- [ ] T096 [US15] Consumir la reserva al registrar la salida asociada, exigir que la salida cubra el saldo pendiente o liberar la diferencia antes, y validar salidas y traslados contra el disponible en src/storage.js (FR-048, FR-049)
+- [ ] T097 [US15] Marcar reservas vencidas sin borrarlas y bloquear la eliminación de productos y la desactivación de bodegas con reservas activas, líneas en una toma abierta o toma abierta, en src/storage.js (FR-050, FR-051)
+- [ ] T098 [US15] Evaluar la marca de stock bajo sobre el disponible total, incluido el disponible negativo, en src/storage.js y src/components/entity-list.js (FR-047)
+
+**Punto de control**: El disponible refleja los compromisos sin alterar las existencias físicas.
+
+---
+
+## Fase 18: Historia de Usuario 16 - Realizar una toma de inventario físico (Prioridad: P2)
+
+**Objetivo**: Contar el físico por bodega, calcular diferencias y generar ajustes vinculados a la toma, sin alterar reservas.
+
+**Prueba Independiente**: Una toma con diferencias genera un ajuste por línea al confirmar; las reservas existentes no cambian y se advierte si el físico contado es menor que lo reservado.
+
+### Pruebas para la Historia de Usuario 16
+
+- [ ] T099 [P] [US16] Añadir pruebas de integración de tomas (borrador, paso a conteo, confirmación con movimientos intermedios, ajustes con motivo y `countId`, línea "sin lote", inmutabilidad de la toma confirmada, disponible negativo y anulación) en tests/integration/stock-counts.test.js
+
+### Implementación de la Historia de Usuario 16
+
+- [ ] T100 [US16] Implementar las entidades Toma y Línea de toma, incluidas las líneas "sin lote" para saldo físico no asociado, en src/storage.js
+- [ ] T101 [P] [US16] Crear la pantalla de toma por bodega con cantidad contada por producto, por lote y "sin lote", y registrar la ruta `stock-counts` dentro del módulo Bodegas, en src/components/stock-count-form.js y src/app.js
+- [ ] T102 [US16] Calcular la diferencia contra el saldo vigente al confirmar y generar un movimiento de ajuste por diferencia con motivo, `countId` y dirección según el signo, en src/storage.js (FR-053)
+- [ ] T103 [US16] Vincular los ajustes a la toma y mostrar en el kárdex del producto su motivo y la referencia de la toma en src/components/kardex-view.js (FR-053)
+- [ ] T104 [US16] Advertir cuando las reservas activas superen el físico contado, mostrar el disponible negativo y bloquear nuevas reservas y salidas sin liberar reservas, y bloquear una segunda toma abierta por bodega en src/storage.js (FR-054, FR-055)
+- [ ] T105 [US16] Implementar el ciclo Borrador → En conteo → Confirmada / Anulada, impedir modificar o anular una toma confirmada y bloquear la desactivación de bodegas y la eliminación de productos con toma abierta en src/app.js y src/storage.js
+
+**Punto de control**: El físico del sistema queda alineado con el conteo y toda diferencia es trazable a su toma.
+
+---
+
+## Fase 19: Pulido y Preocupaciones Transversales
 
 **Propósito**: Mejorar la calidad, accesibilidad, seguridad y el comportamiento con grandes volúmenes en todas las historias.
 
@@ -381,7 +428,9 @@
 - **US12 (Fase 14)**: Depende de US4 y US10 (documentos y movimientos) y de ModuleConfig (Fundacional)
 - **US8 (Fase 15)**: Depende de US4, US5 y US12 (cadena de estados del traslado)
 - **US14 (Fase 16)**: Depende de US12, US4 y US8 (movimientos Entregado/Recibido)
-- **Pulido (Fase 17)**: Depende de que todas las historias deseadas estén completas
+- **US15 (Fase 17)**: Depende de US1, US5, US4 y US7 (producto, bodega, salidas y kárdex)
+- **US16 (Fase 18)**: Depende de US1, US5, US4 y US6 (lotes, ajustes y advertencia de reservas); solo T104 requiere además US15
+- **Pulido (Fase 19)**: Depende de que todas las historias deseadas estén completas
 
 ### Dependencias entre Historias de Usuario
 
@@ -397,6 +446,8 @@
 - **US12 (P2)**: Depende de US4/US10; US8 y US14 dependen de ella
 - **US8 (P2)**: Depende de US4, US5 y US12
 - **US14 (P2)**: Depende de US12, US4 y US8
+- **US15 (P2)**: Depende de US1, US4, US5 y US7 (kárdex)
+- **US16 (P2)**: Depende de US1, US4, US5 y US6; T104 (advertencia de reservas) requiere además US15
 
 ### Dentro de Cada Historia
 
@@ -413,7 +464,9 @@
 - Después de Fundacional: US1/US5/US13 pueden avanzar en paralelo
 - US2 (tras US1) y US5/US13 pueden ejecutarse en paralelo
 - US10 puede avanzar en paralelo con US6, US9 y US11 una vez desbloqueadas
-- En Fase 17, T084, T085, T087 y T088 son paralelas antes de la verificación final T089–T090
+- En Fase 19, T084, T085, T087 y T088 son paralelas antes de la verificación final T089–T090
+- US15 y US16 pueden avanzar en paralelo una vez completadas US4, US5 y US6; solo la advertencia de reservas de T104 depende de US15
+- T094, T101 y T105 comparten `src/app.js`: si se ejecutan en paralelo, coordinar el registro de rutas (`reservations` en Movimientos, `stock-counts` en Bodegas) y de renderers para evitar conflictos
 
 ---
 
@@ -449,7 +502,7 @@ Task: "Crear la lista de movimientos ... en src/components/movement-list.js"
 3. US13 + US3 → probar (marco y panel = experiencia ERP)
 4. US5 + US4 → probar (movimientos y saldos = operación diaria)
 5. US7 → probar (auditoría del stock)
-6. Historias P2 en orden de dependencias: US6/US9/US10 → US11 → US12 → US8 → US14
+6. Historias P2 en orden de dependencias: US6/US9/US10 → US11 → US12 → US8 → US14 → US15 → US16
 7. Pulido → suite completa y build de producción
 
 ### Estrategia de Equipo en Paralelo
@@ -459,7 +512,7 @@ Task: "Crear la lista de movimientos ... en src/components/movement-list.js"
    - Desarrollador A: US1 → US2 (datos maestros)
    - Desarrollador B: US13 → US3 (marco y panel)
    - Desarrollador C: US5 → US4 (bodegas y movimientos)
-3. En P2: repartir US6/US9/US10/US11 y US12 → US8 → US14 según capacidad
+3. En P2: repartir US6/US9/US10/US11 y US12 → US8 → US14 → US15 → US16 según capacidad
 4. Las historias se integran y prueban de forma independiente
 
 ---
