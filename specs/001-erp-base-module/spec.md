@@ -21,62 +21,72 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
-### Historia de Usuario 1 - Crear y organizar entidades (Prioridad: P1)
-Como usuario de negocio, quiero crear entradas de entidad con detalles claros para poder
-construir y mantener los datos maestros del módulo.
+### Historia de Usuario 1 - Crear y organizar productos (Prioridad: P1)
+Como encargado de bodega, quiero crear productos con su identidad, contacto, clasificación y stock mínimo para construir y mantener el catálogo maestro del inventario.
 
-Por qué esta prioridad: Este es el valor central del producto porque, sin crear entidades,
-el resto de la experiencia no puede aportar valor.
+**Por qué esta prioridad**: El catálogo de productos es el dato maestro central del módulo: sin productos no se pueden registrar movimientos, lotes, traslados ni documentos de respaldo, y el resto de la experiencia no puede aportar valor.
 
-Prueba Independiente: Un usuario puede abrir el módulo, añadir una nueva entidad y verla
-aparecer en la lista.
+**Prueba Independiente**: Un usuario abre Productos, crea un producto con nombre y código, completa opcionalmente sus datos de identidad, contacto, clasificación y stock mínimo, y comprueba que se guarda y aparece en la lista.
 
-Escenarios de Aceptación:
-1. Dado que un usuario está viendo la lista de entidades, cuando crea una nueva entidad con un
-   nombre y un código, entonces la nueva entidad se guarda y aparece en la lista.
-2. Dado que un usuario está creando una entidad, cuando deja la información obligatoria en
-   blanco, entonces el sistema impide guardar y explica qué se necesita.
-3. Dado que ya existe una entidad con un código determinado, cuando el usuario intenta crear
-   otra con el mismo código, entonces el sistema impide guardar e indica que el código está
-   duplicado.
-4. Dado que el usuario ingresa texto con HTML o scripts en un campo, cuando guarda y la
-   entidad se muestra, entonces el contenido se escapa y no se ejecuta.
-5. Dado que la entidad tiene categoría, cuando el usuario la clasifica, entonces elige entre
-   los valores definidos en la configuración (no texto libre).
+**Escenarios de Aceptación**:
+
+1. **Dado** que el usuario está viendo la lista de productos, **cuando** crea uno nuevo con nombre y código, **entonces** el producto se guarda y aparece en la lista.
+2. **Dado** que el usuario está creando un producto, **cuando** deja el nombre o el código en blanco, **entonces** el sistema impide guardar y explica qué campos son obligatorios.
+3. **Dado** que ya existe un producto con un código determinado, **cuando** el usuario intenta crear otro con el mismo código (sin distinguir mayúsculas/minúsculas), **entonces** el sistema impide guardar e indica que el código ya está en uso.
+4. **Dado** que el usuario completa datos opcionales de identidad y contacto (identificación fiscal, correo, teléfono, dirección), **cuando** guarda, **entonces** los valores se persisten y quedan disponibles para consulta y búsqueda.
+5. **Dado** que el usuario introduce un correo electrónico con formato inválido, **cuando** guarda, **entonces** el sistema rechaza el guardado y explica que el correo no es válido.
+6. **Dado** que el usuario clasifica el producto, **cuando** selecciona una categoría, **entonces** elige entre los valores definidos en la configuración (p. ej., General, Materia prima, Producto terminado, Insumo), no texto libre.
+7. **Dado** que el usuario completa descripción, fecha objetivo, límite de crédito o condiciones de pago, **cuando** guarda, **entonces** esos datos opcionales se persisten con el producto; la fecha objetivo debe ser una fecha de calendario válida y el límite de crédito, un número no negativo.
+8. **Dado** que el usuario define un stock mínimo, **cuando** introduce un entero no negativo o lo deja vacío, **entonces** el valor se guarda o queda sin mínimo; una cantidad negativa o no entera se rechaza con una explicación.
+9. **Dado** que la configuración declara campos personalizados para productos, **cuando** el usuario los completa, **entonces** se renderizan con el tipo correspondiente, se validan (incluidos los obligatorios) y se guardan con el producto.
+10. **Dado** que el usuario ingresa texto con HTML o scripts en un campo, **cuando** guarda y el producto se muestra, **entonces** el contenido se escapa y no se ejecuta.
+11. **Dado** que aún no hay productos, **cuando** el usuario abre la lista, **entonces** se muestra un estado vacío claro; al crear el primero, el estado vacío desaparece.
 
 Datos involucrados (para el MER y data-model.md):
-- Tabla/entidad: Entidad
-- Campos: entity_id (autogenerado), nombre (obligatorio), código (obligatorio, único),
-  descripción, categoría, fecha objetivo (opcional)
-- Relación: una Entidad tiene cero o más Documentos (1:N, eliminación en cascada)
+- Tabla/entidad: Producto (Entity del módulo base)
+- Campos: id y entity_id (autogenerados), nombre (obligatorio), código (obligatorio, único),
+  identificación fiscal, correo, teléfono, dirección, categoría, descripción, fecha objetivo,
+  límite de crédito, condiciones de pago, stock mínimo y campos personalizados (opcionales según configuración), createdAt y updatedAt
+- Relación: un Producto tiene cero o más Documentos, Lotes y Movimientos de inventario; al eliminar un producto sin movimientos se eliminan en cascada sus Documentos y Lotes, y la eliminación se bloquea si tiene Movimientos (HU2, HU4, HU6, HU10)
 
 Decisión de datos y justificación:
 - El código de negocio es único porque identifica el registro de forma legible y evita
-  duplicados en los datos maestros.
+  duplicados en los datos maestros; la comparación no distingue mayúsculas/minúsculas.
 - La categoría usa valores controlados para evitar clasificaciones inconsistentes y sesgos
   en análisis posteriores.
+- El stock mínimo se guarda como entero no negativo y se compara con el saldo total del producto (HU9).
+- Los campos personalizados permiten extender el producto sin modificar el código base (FR-026 a FR-028).
 - Los datos se guardan en localStorage por ser un MVP sin servidor; esto limita la
   seguridad y la persistencia (ver issue de decisiones).
 
 Riesgos de datos:
 - Contenido malicioso (XSS) → mitigado con escape de HTML al renderizar.
 - Datos duplicados o incompletos → mitigados con validaciones de obligatoriedad y unicidad.
+- Correos o fechas inválidas → mitigados con validación de formato antes de guardar.
 - Datos reales sensibles en localStorage → usar solo datos ficticios en el MVP.
 
 ---
 
-### Historia de Usuario 2 - Editar y eliminar entidades (Prioridad: P1)
-Como usuario de negocio, quiero actualizar o eliminar entidades cuando cambien los datos maestros para que los registros se mantengan precisos.
+### Historia de Usuario 2 - Editar y eliminar productos (Prioridad: P1)
+Como encargado de bodega, quiero actualizar o eliminar productos cuando cambien los datos maestros para que el catálogo y el stock se mantengan precisos.
 
-**Por qué esta prioridad**: Mantener los registros actualizados es esencial para la confianza en la herramienta y para soportar las operaciones comerciales diarias.
+**Por qué esta prioridad**: Mantener los productos actualizados es esencial para la confianza en el inventario y para que las operaciones de entrada, salida, traslado y devolución usen datos correctos; además, el histórico de movimientos debe protegerse.
 
-**Prueba Independiente**: Un usuario puede seleccionar una entidad existente, cambiar su información o eliminarla, y la lista refleja el cambio.
+**Prueba Independiente**: Un usuario selecciona un producto existente (con o sin movimientos), edita sus datos (incluidos campos personalizados y stock mínimo); si no tiene movimientos, también puede eliminarlo con confirmación. La lista refleja el cambio y un producto con movimientos no se puede eliminar.
 
 **Escenarios de Aceptación**:
 
-1. **Dada** una entidad que ya existe en la lista, **cuando** el usuario edita sus detalles, **entonces** la información actualizada se guarda y se muestra en la lista.
-2. **Dada** una entidad que ya no es relevante, **cuando** el usuario la elimina, **entonces** desaparece de la lista y deja de aparecer en los resultados de búsqueda.
-3. **Dadas** cientos de entidades almacenadas, **cuando** el usuario edita o elimina una, **entonces** la lista se actualiza correctamente y sigue siendo ágil.
+1. **Dado** un producto que ya existe en la lista, con o sin movimientos, **cuando** el usuario edita sus detalles y guarda, **entonces** la información actualizada se persiste y se muestra en la lista; el formulario vuelve al modo de creación.
+2. **Dado** que el usuario está editando un producto, **cuando** cancela la edición, **entonces** los cambios no se guardan y el producto conserva sus datos originales.
+3. **Dado** que el usuario edita el código de un producto, **cuando** el nuevo código coincide con el de otro producto, **entonces** el sistema rechaza el guardado e indica que el código ya está en uso.
+4. **Dado** que el usuario modifica campos personalizados o el stock mínimo al editar, **cuando** guarda, **entonces** los nuevos valores se persisten y se reflejan en la lista.
+5. **Dado** un producto sin movimientos que ya no es relevante, **cuando** el usuario lo elimina y confirma la acción, **entonces** desaparece de la lista y de la búsqueda, y sus documentos y lotes se eliminan en cascada.
+6. **Dado** un producto sin movimientos, **cuando** el usuario cancela la confirmación de eliminación, **entonces** el producto permanece intacto en la lista.
+7. **Dado** un producto con movimientos de inventario registrados, **cuando** el usuario intenta eliminarlo, **entonces** el sistema rechaza la eliminación y explica que debe conservarse el histórico del inventario.
+8. **Dados** cientos de productos almacenados, **cuando** el usuario edita o elimina uno, **entonces** la lista se actualiza correctamente y sigue siendo ágil.
+9. **Dado** que el usuario edita un producto con lotes o documentos de respaldo pero sin movimientos, **cuando** guarda los cambios, **entonces** esos registros asociados se conservan y siguen vinculados al producto.
+10. **Dado** que el usuario edita el stock mínimo de un producto, **cuando** el nuevo mínimo queda por encima del saldo total, **entonces** la marca de "stock bajo" se actualiza al volver a consultar la lista (HU9).
+11. **Dado** un producto con movimientos de inventario registrados, **cuando** el usuario edita sus datos maestros y guarda, **entonces** los cambios se persisten y el histórico de movimientos se conserva intacto; solo la eliminación está bloqueada (escenario 7).
 
 ---
 
@@ -94,37 +104,37 @@ Como usuario de negocio, quiero el inicio de una página con botones sencillos q
 2. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo producto, **entonces** la aplicación abre el área de gestión de productos con un formulario vacío listo para introducir datos.
 3. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo movimiento, **entonces** la aplicación abre el área de gestión de movimientos con un formulario vacío listo para introducir datos.
 4. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de buscar registros, **entonces** la aplicación abre la pantalla de búsqueda con el campo de búsqueda enfocado.
-5. **Dadas** entidades y documentos almacenados, **cuando** el usuario ve la pantalla de inicio, **entonces** las tarjetas de estadísticas muestran el recuento actual de entidades y documentos.
-6. **Dado** que el usuario crea o elimina registros en otra parte de la aplicación, **cuando** vuelve a la pantalla de inicio, **entonces** las estadísticas reflejan el cambio.
+5. **Dados** productos (entidades) y documentos de respaldo almacenados, **cuando** el usuario ve la pantalla de inicio, **entonces** las tarjetas de estadísticas muestran el recuento actual de productos y documentos de respaldo.
+6. **Dado** que el usuario crea o elimina productos o documentos de respaldo en otra parte de la aplicación, **cuando** vuelve a la pantalla de inicio, **entonces** las estadísticas reflejan el cambio.
 
 ---
 
 ### Historia de Usuario 4 - Registrar movimientos de inventario en una pantalla dedicada (Prioridad: P1)
 
-Como encargado de bodega, quiero una pantalla dedicada donde registre los movimientos de inventario de entrada, salida, traslado y ajuste, para que el stock de la bodega refleje en todo momento lo que realmente hay en el almacén.
+Como encargado de bodega, quiero una pantalla dedicada donde registre los movimientos de inventario de entrada, salida y ajuste, para que el stock de la bodega refleje en todo momento lo que realmente hay en el almacén; los traslados se registran en su propio flujo (HU8).
 
 **Por qué esta prioridad**: La captura de movimientos es la operación diaria central del módulo de logística: sin registrar entradas y salidas no existe un stock confiable sobre el que despachar, recibir o planificar. Es el equivalente operativo de la gestión de datos maestros del módulo base.
 
-**Prueba Independiente**: Un usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, registra una entrada de un producto en un almacén con su cantidad y fecha, verifica que el stock resultante aumenta, y registra una salida que lo hace disminuir; una salida que dejaría el saldo en negativo se rechaza indicando el saldo disponible.
+**Prueba Independiente**: Un usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, registra una entrada de un producto en un almacén con su cantidad y fecha y verifica que el stock resultante aumenta; registra una salida y verifica que el saldo disminuye (al guardarla sin ciclo de vida o al despacharla con ciclo configurado); una salida que dejaría el saldo en negativo se rechaza indicando el saldo disponible.
 
 **Alcance y decisiones**:
 
-- Un movimiento identifica un producto, un almacén, una cantidad y un tipo (entrada, salida, traslado o ajuste); el lote y el documento de origen son opcionales.
-- Un traslado se captura una sola vez indicando almacén de origen y almacén de destino, y se guarda como dos movimientos vinculados (salida en el origen, entrada en el destino) que comparten el documento del traslado (ver Clarificaciones).
-- Los movimientos guardados son inmutables: no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
-- Con un ciclo de vida configurado, el momento en que el movimiento afecta al stock lo rige la Historia de Usuario 12; sin ciclo de vida, el saldo se actualiza al guardar.
+- Un movimiento identifica un producto, un almacén, una cantidad y un tipo (entrada, salida o ajuste); el lote y el documento de origen son opcionales.
+- Los traslados no se crean desde este formulario: se capturan en su propia pantalla (HU8) y el sistema genera sus dos movimientos vinculados (salida en el origen, entrada en el destino), que comparten el documento del traslado.
+- Los movimientos guardados son inmutables en sus datos (producto, almacén, cantidad, fecha y lote): no se editan ni se eliminan; solo se permite avanzar su estado conforme a la HU12, y una corrección de cantidades se registra con un movimiento de ajuste.
+- Con un ciclo de vida configurado, el momento en que el movimiento afecta al stock lo rige la Historia de Usuario 12; sin ciclo de vida, el saldo se actualiza al guardar. Las entradas y los ajustes sin ciclo de vida se efectivizan de inmediato.
 - El saldo por producto y almacén se calcula sumando sus movimientos; nunca se edita directamente.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de gestión de movimientos, **cuando** crea uno nuevo, **entonces** debe indicar tipo, producto, almacén, cantidad y fecha; si deja un campo obligatorio en blanco, el sistema impide guardar y explica qué se necesita.
+1. **Dado** que el usuario está en la pantalla de gestión de movimientos, **cuando** crea uno nuevo, **entonces** debe indicar tipo (entrada, salida o ajuste), producto, almacén, cantidad y fecha; si deja un campo obligatorio en blanco, el sistema impide guardar y explica qué se necesita.
 2. **Dada** una cantidad que no es un entero positivo o una fecha que no es una fecha de calendario válida, **cuando** el usuario intenta guardar, **entonces** el sistema rechaza el guardado con una explicación clara.
-3. **Dado** un producto y un almacén existentes, **cuando** el usuario registra una entrada, **entonces** el movimiento se guarda y el saldo del producto en ese almacén aumenta en la cantidad indicada.
-4. **Dada** una salida cuya cantidad supera el saldo disponible del producto en el almacén, **cuando** el usuario intenta guardarla, **entonces** el sistema la rechaza e indica el saldo disponible.
+3. **Dado** un producto y un almacén existentes, **cuando** el usuario registra una entrada (sin ciclo de vida configurado), **entonces** el movimiento se guarda y el saldo del producto en ese almacén aumenta en la cantidad indicada; con ciclo de vida, el efecto en el stock sigue la HU12.
+4. **Dada** una salida cuya cantidad supera el saldo disponible del producto en el almacén, **cuando** el usuario intenta guardarla sin ciclo de vida configurado o despacharla con ciclo configurado, **entonces** el sistema la rechaza e indica el saldo disponible.
 5. **Dado** un movimiento guardado, **cuando** el usuario vuelve a la pantalla de gestión, **entonces** ve el saldo actual del producto por almacén de un vistazo.
 6. **Dado** que el usuario asocia un lote a un movimiento, **cuando** guarda, **entonces** el lote debe pertenecer al mismo producto; si no, el sistema lo rechaza con una explicación.
 7. **Dado** un movimiento, **cuando** el usuario lo registra, **entonces** puede asociarlo opcionalmente al documento que lo origina (p. ej. una orden de compra o una remisión).
-8. **Dado** un movimiento ya guardado, **cuando** el usuario intenta editarlo o eliminarlo, **entonces** el sistema no lo permite y explica que las correcciones se registran con un movimiento de ajuste.
+8. **Dado** un movimiento ya guardado, **cuando** el usuario intenta editar sus datos o eliminarlo, **entonces** el sistema no lo permite y explica que las correcciones se registran con un movimiento de ajuste y que solo se puede avanzar el estado según su ciclo de vida (HU12).
 9. **Dado** que el usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, **cuando** la pantalla se abre, **entonces** el formulario está listo para introducir datos y el módulo activo queda resaltado.
 10. **Dado** que el usuario está en la pantalla de gestión, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio sin perder los movimientos almacenados.
 
@@ -145,7 +155,7 @@ Como encargado de bodega, quiero crear, editar y desactivar las bodegas donde se
 3. **Dada** una bodega ya registrada con un código determinado, **cuando** el usuario intenta crear otra con el mismo código (incluso si la primera está desactivada), **entonces** el sistema impide guardar e indica que el código está duplicado.
 4. **Dada** una bodega activa, **cuando** el usuario edita su nombre o dirección, **entonces** los cambios se guardan y los movimientos históricos que la referencian muestran la información actualizada sin que cambien sus cantidades ni los saldos.
 5. **Dada** una bodega con movimientos registrados, **cuando** el usuario intenta eliminarla, **entonces** el sistema rechaza la eliminación y sugiere desactivarla para conservar el histórico de inventario.
-6. **Dada** una bodega desactivada, **cuando** el usuario intenta registrar un movimiento con ella, **entonces** el sistema rechaza la operación e indica que la bodega no puede recibir movimientos.
+6. **Dada** una bodega desactivada, **cuando** el usuario intenta registrar un movimiento con ella, trasladar hacia ella o recibir en ella una devolución, **entonces** el sistema rechaza la operación e indica que la bodega no puede recibir movimientos.
 7. **Dada** una bodega desactivada, **cuando** el usuario consulta la lista de movimientos o los saldos existentes, **entonces** el histórico de esa bodega sigue visible y sus saldos no cambian.
 8. **Dada** una bodega desactivada, **cuando** el usuario la vuelve a activar, **entonces** queda disponible de nuevo para registrar movimientos sin necesidad de crear otra bodega.
 9. **Dado** que el encargado llega a la pantalla de bodegas desde la barra lateral, **cuando** la pantalla se abre, **entonces** ve la lista de bodegas con su código, nombre y estado (activa o desactivada) de un vistazo.
@@ -159,6 +169,11 @@ Como operador de inventario, quiero registrar los lotes de cada producto con sus
 **Por qué esta prioridad**: El control de lotes aporta trazabilidad y evita despachar mercadería vencida; es una mejora de madurez operativa que complementa la captura de movimientos (Historia de Usuario 4), pero no bloquea el MVP porque los lotes siguen siendo opcionales en los movimientos.
 
 **Prueba Independiente**: Un operador de inventario registra un lote con número, fecha de fabricación y fecha de vencimiento para un producto, verifica que aparece en la lista de lotes de ese producto con saldo en cero y que al registrar una entrada con ese lote su saldo aumenta; al intentar guardar una fecha de vencimiento anterior a la de fabricación, el sistema rechaza el guardado.
+
+**Alcance y decisiones**:
+
+- El lote es opcional en los movimientos y en las líneas de traslado; cuando se indica, debe pertenecer al mismo producto (HU4, HU8).
+- El saldo del lote se deriva de sus movimientos y no se edita directamente.
 
 **Escenarios de Aceptación**:
 
@@ -185,10 +200,10 @@ Como encargado de bodega, quiero ver el historial completo de movimientos de un 
 
 **Escenarios de Aceptación**:
 
-1. **Dado** un producto con movimientos registrados, **cuando** el usuario abre su historial, **entonces** ve cada movimiento con fecha, tipo, bodega, cantidad y saldo acumulado posterior, ordenados del más antiguo al más reciente.
+1. **Dado** un producto con movimientos registrados, **cuando** el usuario abre su historial, **entonces** ve cada movimiento con fecha, tipo, bodega, cantidad, estado y saldo acumulado posterior, ordenados del más antiguo al más reciente.
 2. **Dado** un producto sin movimientos, **cuando** el usuario abre su historial, **entonces** se muestra un estado vacío que indica que aún no hay movimientos registrados.
-3. **Dado** un producto con entradas, salidas y ajustes confirmados, **cuando** el usuario consulta el historial, **entonces** el saldo acumulado se calcula solo con movimientos confirmados y el saldo final coincide con el stock mostrado en la lista de productos.
-4. **Dado** un movimiento anulado, **cuando** se muestra en el historial, **entonces** aparece marcado como anulado y no altera el saldo acumulado.
+3. **Dado** un producto con entradas, salidas y ajustes, **cuando** el usuario consulta el historial, **entonces** el saldo acumulado se calcula solo con movimientos efectivos (no cancelados y, con ciclo de vida, en un estado que ya afecta al stock) y el saldo final coincide con el stock mostrado en la lista de productos.
+4. **Dado** un movimiento cancelado (anulado), **cuando** se muestra en el historial, **entonces** aparece marcado como cancelado y no altera el saldo acumulado.
 5. **Dado** un historial con muchos movimientos, **cuando** el usuario lo consulta, **entonces** puede filtrar por tipo de movimiento y por rango de fechas.
 6. **Dado** un producto marcado con stock bajo, **cuando** el usuario revisa su historial, **entonces** puede identificar el último movimiento que dejó el saldo por debajo del mínimo.
 7. **Dado** el historial en modo solo lectura, **cuando** el usuario intenta modificar un movimiento desde ahí, **entonces** el sistema lo impide y lo remite a la pantalla de movimientos.
@@ -197,7 +212,7 @@ Como encargado de bodega, quiero ver el historial completo de movimientos de un 
 
 ### Historia de Usuario 8 - Trasladar stock entre bodegas (Prioridad: P2)
 
-Como encargado de bodega, quiero trasladar unidades de un producto desde una bodega de origen hacia otra de destino, para reflejar el movimiento real de mercadería entre almacenes sin alterar el stock total de la empresa.
+Como encargado de bodega, quiero trasladar unidades de un producto desde una bodega de origen hacia otra de destino, para reflejar el movimiento real de mercadería entre almacenes sin alterar el stock total de la empresa. El traslado se captura en su propia pantalla y genera dos movimientos vinculados (HU4, HU12).
 
 **Por qué esta prioridad**: Con una sola bodega el MVP funciona sin traslados; pero en cuanto existen varias, el traslado es la única forma de explicar por qué un producto deja de estar en un almacén y aparece en otro sin haber sido vendido. Se posterga porque exige un documento con dos almacenes, estados y stock en tránsito: una complejidad que no bloquea la captura básica de entradas y salidas.
 
@@ -205,40 +220,45 @@ Como encargado de bodega, quiero trasladar unidades de un producto desde una bod
 
 **Alcance y decisiones**:
 
-- Un traslado tiene bodega de origen, bodega de destino, fecha, estado y una o más líneas (producto + cantidad); un mismo producto no puede repetirse en dos líneas.
+- Un traslado tiene bodega de origen, bodega de destino, fecha, estado y una o más líneas (producto + cantidad); un mismo producto no puede repetirse en dos líneas. Cada línea puede incluir un lote opcional del mismo producto, sujeto a las reglas FEFO y de vencimiento de la HU6.
 - El stock total de la empresa no cambia: solo se redistribuye entre bodegas.
-- Las unidades despachadas y aún no recibidas quedan **en tránsito**: no están disponibles en ninguna de las dos bodegas.
+- Las unidades despachadas y aún no recibidas quedan **en tránsito**: no están disponibles en ninguna de las dos bodegas. El tránsito comienza al pasar a Despachado y se mantiene durante En tránsito hasta Recibido.
 - El ciclo de estados sigue la Historia de Usuario 12, con la cadena de referencia Solicitado → Despachado → En tránsito → Recibido.
 - Un traslado confirmado es inmutable; una corrección se registra con un movimiento de ajuste, igual que en la Historia de Usuario 4.
-- No se permiten traslados desde o hacia bodegas desactivadas (Historia de Usuario 5).
+- No se permiten traslados desde o hacia bodegas desactivadas (Historia de Usuario 5), ni recibir un traslado en una bodega de destino desactivada.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de traslados, **cuando** crea uno nuevo, **entonces** debe indicar bodega de origen, bodega de destino, fecha y al menos un producto con cantidad; si falta un campo obligatorio, el sistema impide guardar y explica qué se necesita.
+1. **Dado** que el usuario está en la pantalla de traslados, **cuando** crea uno nuevo, **entonces** debe indicar bodega de origen, bodega de destino, fecha y al menos un producto con cantidad y, opcionalmente, un lote por línea; si falta un campo obligatorio, el sistema impide guardar y explica qué se necesita.
 2. **Dado** un traslado en preparación, **cuando** el usuario selecciona la misma bodega como origen y destino, **entonces** el sistema rechaza la operación e indica que deben ser distintas.
 3. **Dado** un producto con 50 unidades en la bodega de origen, **cuando** el usuario intenta trasladar 999, **entonces** el sistema rechaza la operación e indica el saldo disponible en origen.
 4. **Dada** una cantidad no positiva o no numérica, **cuando** el usuario intenta guardar la línea, **entonces** el sistema la rechaza con una explicación clara.
-5. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo despacha, **entonces** el saldo de origen disminuye en la cantidad trasladada y las unidades quedan marcadas como "en tránsito", sin estar disponibles en destino.
+5. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo despacha (pasa a "Despachado"), **entonces** el saldo de origen disminuye en la cantidad trasladada y las unidades quedan marcadas como "en tránsito" (desde "Despachado" hasta "Recibido"), sin estar disponibles en destino.
 6. **Dado** un traslado "En tránsito", **cuando** el usuario consulta el stock de cualquiera de las dos bodegas, **entonces** las unidades en tránsito no se suman al saldo disponible y se informan por separado.
 7. **Dado** un traslado "En tránsito", **cuando** el usuario lo marca como "Recibido", **entonces** el saldo de destino aumenta en la cantidad trasladada y el tránsito se cierra.
 8. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo cancela, **entonces** no se altera ningún saldo.
 9. **Dado** un traslado ya "Recibido", **cuando** el usuario intenta cancelarlo o editarlo, **entonces** el sistema lo impide y explica que la corrección se registra con un ajuste.
-10. **Dado** un traslado despachado o recibido, **cuando** el usuario consulta la trazabilidad de un producto, **entonces** el traslado aparece en el historial de ambas bodegas con su referencia.
-11. **Dada** una bodega de destino desactivada, **cuando** el usuario intenta trasladar hacia ella, **entonces** el sistema lo rechaza e indica que la bodega no puede recibir movimientos.
+10. **Dado** un traslado despachado o recibido, **cuando** el usuario consulta la trazabilidad de un producto, **entonces** el traslado aparece en su historial con las piernas de origen y destino y su referencia (HU7).
+11. **Dada** una bodega de destino desactivada, **cuando** el usuario intenta trasladar hacia ella o recibir en ella un traslado, **entonces** el sistema lo rechaza e indica que la bodega no puede recibir movimientos.
+12. **Dado** un traslado con un lote vencido en alguna de sus líneas, **cuando** el usuario intenta despacharlo, **entonces** el sistema lo rechaza e indica que el lote está vencido (HU6).
 
 ---
 
-### Historia de Usuario 9 - Definir stock mínimo por producto y almacén (Prioridad: P2)
-Como encargado de bodega, quiero definir un stock mínimo por producto y almacén, para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
+### Historia de Usuario 9 - Definir stock mínimo por producto (Prioridad: P2)
+Como encargado de bodega, quiero definir un stock mínimo por producto (sobre su saldo total en todas las bodegas), para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
 
 **Por qué esta prioridad**: El stock mínimo automatiza la detección de faltantes para evitar conteos manuales, ganando valor a medida que crecen el catálogo y los almacenes; sin embargo, no bloquea el MVP, ya que las entradas y salidas pueden gestionarse completas sin él.
 
-**Prueba Independiente**: Un encargado de bodega fija un stock mínimo de 10 unidades para un producto en un almacén, guarda, y al consultar la lista o la búsqueda ve el producto marcado como "stock bajo" cuando su saldo real es 5; al subir el saldo con una entrada a 15, la marca desaparece.
+**Prueba Independiente**: Un encargado de bodega fija un stock mínimo de 10 unidades para un producto, guarda, y al consultar la lista o la búsqueda ve el producto marcado como "stock bajo" cuando su saldo total es 5; al subir el saldo con una entrada a 15, la marca desaparece.
+
+**Alcance y decisiones**:
+
+- El stock mínimo se compara con el saldo total del producto (suma de sus bodegas), no con el saldo de una bodega concreta.
 
 **Escenarios de Aceptación**:
 
 1. **Dado** que el encargado de bodega está creando o editando un producto, **cuando** introduce un stock mínimo de 10 unidades y guarda, **entonces** el valor se guarda y se muestra junto al producto en la lista.
-2. **Dado** un producto con stock mínimo definido y un saldo real de 5 unidades en un almacén, **cuando** el usuario consulta la lista o la pantalla de búsqueda, **entonces** el producto aparece marcado visualmente como "stock bajo".
+2. **Dado** un producto con stock mínimo definido y un saldo total de 5 unidades (sumando sus bodegas), **cuando** el usuario consulta la lista o la pantalla de búsqueda, **entonces** el producto aparece marcado visualmente como "stock bajo".
 3. **Dado** un producto marcado como "stock bajo", **cuando** el usuario registra una entrada que eleva su saldo a 15 unidades, **entonces** la marca de "stock bajo" desaparece al volver a consultar la lista o la búsqueda.
 4. **Dada** una cantidad negativa o no numérica, **cuando** el usuario intenta guardar el stock mínimo, **entonces** el sistema rechaza el guardado con una explicación clara.
 5. **Dado** que el usuario deja el stock mínimo en blanco, **cuando** guarda el producto, **entonces** el producto se guarda sin mínimo y la lista no muestra ninguna marca de "stock bajo" para él.
@@ -252,7 +272,11 @@ Como usuario de negocio, quiero crear y organizar los documentos de logística j
 
 **Por qué esta prioridad**: Guardar los documentos de respaldo junto a los productos permite rastrear cada entrada o salida hasta el pedido o remisión que la originó, lo que da confianza al inventario frente a auditorías y diferencias. Es una mejora de madurez operativa: el módulo funciona sin ella, pero con evidencia dispersa. 
 
-**Prueba Independiente**: Un usuario crea una orden de compra con sus datos obligatorios, la ve aparecer en la lista de documentos junto al producto asociado, y al eliminar ese producto comprueba que el documento también se elimina en cascada.
+**Prueba Independiente**: Un usuario crea una orden de compra con sus datos obligatorios, la ve aparecer en la lista de documentos junto al producto asociado, y al eliminar ese producto (sin movimientos) comprueba que el documento también se elimina en cascada.
+
+**Alcance y decisiones**:
+
+- Los documentos de respaldo pueden tener un estado de ciclo de vida (HU12), pero ese estado no modifica el stock; el stock cambia únicamente por movimientos de inventario, traslados y devoluciones.
 
 **Escenarios de Aceptación**:
 
@@ -260,14 +284,14 @@ Como usuario de negocio, quiero crear y organizar los documentos de logística j
 2. **Dado** que el usuario está creando un documento de respaldo (orden de compra o remisión), **cuando** deja un campo obligatorio en blanco, **entonces** el sistema impide guardar y explica qué se necesita.
 3. **Dada** la lista de documentos de un producto, **cuando** el usuario los consulta, **entonces** cada documento se muestra con su tipo y su folio, identificables de un vistazo.
 4. **Dado** un documento de respaldo existente, **cuando** el usuario edita sus datos, **entonces** los cambios se guardan y se reflejan en la lista junto al producto.
-5. **Dado** un producto con documentos de respaldo asociados, **cuando** el usuario elimina el producto, **entonces** sus documentos también se eliminan (borrado en cascada).
+5. **Dado** un producto sin movimientos con documentos de respaldo asociados, **cuando** el usuario elimina el producto, **entonces** sus documentos también se eliminan (borrado en cascada); si el producto tiene movimientos, la eliminación se bloquea (HU2, HU4).
 6. **Dado** un movimiento de inventario registrado, **cuando** el usuario lo asocia al documento que lo origina, **entonces** el movimiento queda vinculado a esa orden de compra o remisión.
 
 ---
 
-### Historia de Usuario 11 - Buscar entidades en una pantalla dedicada (Prioridad: P2)
+### Historia de Usuario 11 - Buscar productos (entidades) en una pantalla dedicada (Prioridad: P2)
 
-Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar productos (entidades) por SKU, nombre, categoría o ubicación sin que los formularios de edición saturen la vista.
+Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar productos (entidades) por SKU (código), nombre, categoría, descripción o fecha objetivo sin que los formularios de edición saturen la vista.
 
 **Por qué esta prioridad**: La recuperación rápida es valiosa cuando el catálogo de productos crece, y una pantalla separada mantiene enfocada la experiencia de gestión, pero la búsqueda no es necesaria para la gestión básica.
 
@@ -275,12 +299,12 @@ Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar 
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente con el SKU, nombre, categoría o ubicación en bodega, **entonces** solo se muestran los productos coincidentes.
+1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente con el SKU (código), nombre, categoría, descripción o fecha objetivo, **entonces** solo se muestran los productos coincidentes.
 2. **Dada** una búsqueda sin coincidencias, **cuando** el usuario envía la búsqueda, **entonces** se muestra un estado vacío claro y puede volver a intentarlo.
 3. **Dados** 500 o más productos almacenados, **cuando** el usuario busca desde la pantalla de búsqueda, **entonces** los resultados aparecen con prontitud sin retraso perceptible.
 4. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio.
 5. **Dados** resultados de búsqueda, **cuando** se muestran, **entonces** cada producto indica su stock actual y se marca visualmente si está por debajo del stock mínimo.
-6. **Dada** la pantalla de búsqueda, **cuando** el usuario combina filtros (categoría, almacén y "solo stock bajo"), **entonces** se muestran únicamente los productos que cumplen todos los filtros aplicados.
+6. **Dada** la pantalla de búsqueda, **cuando** el usuario combina filtros (categoría, bodega y "solo stock bajo"), **entonces** se muestran únicamente los productos que cumplen todos los filtros aplicados; la bodega se aplica como filtro de existencia, no como texto libre.
 7. **Dado** que el usuario llega desde la barra lateral o desde la acción rápida de buscar registros del panel, **cuando** se abre la pantalla, **entonces** el campo de búsqueda queda enfocado.
 8. **Dado** un resultado de búsqueda, **cuando** el usuario lo selecciona, **entonces** se muestra el detalle del producto en modo solo lectura, y la edición permanece en la pantalla de gestión.
 9. **Dado** que el usuario busca un término con distinta capitalización, tildes o solo una parte del SKU, **cuando** envía la búsqueda, **entonces** se devuelven igualmente los productos coincidentes.
@@ -289,9 +313,9 @@ Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar 
 
 ---
 
-### Historia de Usuario 12 - Configurar el ciclo de vida de estados de documentos (Prioridad: P2)
+### Historia de Usuario 12 - Configurar el ciclo de vida de estados de movimientos y documentos (Prioridad: P2)
 
-Como jefe de logística, quiero que cada movimiento de inventario (documento) siga un ciclo de estados controlado, para que no se pueda marcar como recibido un movimiento que nunca fue despachado y el stock refleje la realidad.
+Como jefe de logística, quiero que cada movimiento de inventario y documento de respaldo siga un ciclo de estados controlado, y que las devoluciones tengan su propio ciclo (HU14), para que no se pueda marcar como recibido un movimiento que nunca fue despachado y el stock refleje la realidad.
 
 **Por qué esta prioridad**: Los módulos de logística necesitan ciclos de vida controlados, y el stock solo es confiable si cambia en el momento correcto. El estado de texto libre sigue siendo aceptable para extensiones simples, así que esto mejora la base sin ser necesario para la adaptación básica. Esta historia depende de la configuración del módulo cargada al arrancar (ModuleConfig, FR-023 a FR-025).
 
@@ -299,30 +323,31 @@ Como jefe de logística, quiero que cada movimiento de inventario (documento) si
 
 **Ciclos de vida de referencia**:
 
-- **Orden de compra**: Borrador → Aprobada → Enviada por proveedor → Recibida → Cerrada; Cancelada posible antes de Recibida.
+- **Orden de compra** (documento de respaldo): Borrador → Aprobada → Enviada por proveedor → Recibida → Cerrada; Cancelada posible antes de Recibida. Este ciclo describe el estado del documento y no mueve stock por sí mismo.
 - **Traslado entre almacenes**: Solicitado → Despachado → En tránsito → Recibido; Cancelado posible antes de Despachado.
 - **Salida / despacho a cliente**: Pendiente → Preparado → Despachado → Entregado; Cancelado posible antes de Despachado.
 
 **Regla de stock (única fuente de verdad)**:
 
 - El stock **baja al pasar a Despachado** (salidas y traslados, en el almacén de origen), nunca antes. Una cancelación durante Solicitado, Pendiente o Preparado no afecta el stock, evitando descuentos incorrectos y reingresos manuales.
-- El stock **sube al pasar a Recibido / Recibida** (órdenes de compra y traslados, en el almacén de destino).
-- Una vez Despachado, el movimiento ya no puede cancelarse.
-- El estado del ciclo de vida se guarda en el propio movimiento (campo `status`) junto con la fecha del cambio; las devoluciones son registros aparte con su propio ciclo de vida (HU 14; ver Clarifications).
+- El stock **sube al pasar a Recibido** (traslados, en el almacén de destino) y con las **entradas de inventario**, incluidas las vinculadas a una orden de compra, que se efectivizan al guardarse si no tienen ciclo de vida. El estado de una orden de compra no mueve stock por sí mismo.
+- Una vez Despachado, el movimiento ya no puede cancelarse: primero debe completarse la Entrega o Recepción (Entregado / Recibido) y luego, si corresponde, registrarse una devolución (HU 14).
+- El estado del ciclo de vida se guarda en el propio movimiento (campo `status`) junto con la fecha del cambio, y en el encabezado del traslado; las devoluciones son registros aparte con su propio ciclo de vida (HU 14; ver Clarifications).
+- Las entradas y los ajustes sin ciclo de vida configurado se efectivizan de inmediato al guardarse.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** un ciclo de vida configurado, **cuando** el usuario edita el estado de un documento, **entonces** solo se ofrecen los estados alcanzables mediante transiciones permitidas.
+1. **Dado** un ciclo de vida configurado, **cuando** el usuario cambia el estado de un movimiento, traslado o documento, **entonces** solo se ofrecen los estados alcanzables mediante transiciones permitidas.
 2. **Dado** que se intenta una transición inválida por cualquier vía (p. ej., de Borrador a Recibida), **cuando** se envía, **entonces** el sistema la rechaza con una explicación clara.
-3. **Dado** un ciclo de vida configurado, **cuando** el usuario ve listas o detalles de documentos, **entonces** el estado actual es identificable de un vistazo mediante una etiqueta visual.
-4. **Dado** que no hay ciclo de vida configurado, **cuando** se editan documentos, **entonces** el estado permanece como texto libre igual que en el módulo base sin modificar.
-5. **Dado** un movimiento de salida o traslado en estado Preparado, **cuando** el usuario lo cancela, **entonces** el stock de los productos no cambia.
+3. **Dado** un ciclo de vida configurado, **cuando** el usuario ve listas o detalles de movimientos, traslados o documentos, **entonces** el estado actual es identificable de un vistazo mediante una etiqueta visual.
+4. **Dado** que no hay ciclo de vida configurado, **cuando** se editan documentos de respaldo, **entonces** el estado permanece como texto libre igual que en el módulo base; los movimientos sin ciclo de vida se efectivizan al guardarse y no exponen un estado editable.
+5. **Dada** una salida en estado Preparado o un traslado en estado Solicitado, **cuando** el usuario lo cancela, **entonces** el stock de los productos no cambia.
 6. **Dado** un movimiento de salida o traslado, **cuando** pasa a Despachado, **entonces** el stock del producto disminuye en la cantidad indicada en el almacén de origen.
-7. **Dado** un traslado o una orden de compra, **cuando** pasa a Recibido / Recibida, **entonces** el stock del producto aumenta en la cantidad indicada en el almacén de destino.
-8. **Dado** un movimiento ya Despachado, **cuando** el usuario intenta cancelarlo, **entonces** el sistema lo rechaza con una explicación clara que indica que, una vez entregado o recibido, debe registrarse una devolución (Historia de Usuario 14).
-9. **Dado** un movimiento en un estado final (Cerrada, Cancelado, Entregado), **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
+7. **Dado** un traslado, **cuando** pasa a Recibido, **entonces** el stock del producto aumenta en la cantidad indicada en el almacén de destino; una entrada de inventario vinculada a una orden de compra aumenta el stock al guardarse.
+8. **Dado** un movimiento ya Despachado, **cuando** el usuario intenta cancelarlo, **entonces** el sistema lo rechaza con una explicación clara que indica que primero debe completarse la Entrega o Recepción y que, una vez Entregado o Recibido, la corrección se registra con una devolución (Historia de Usuario 14).
+9. **Dado** un movimiento, traslado o devolución en un estado final (Cerrada, Cancelado, Entregado, Recibido, Rechazada), **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
 10. **Dado** un despacho cuya cantidad supera el stock disponible, **cuando** el usuario intenta pasarlo a Despachado, **entonces** el sistema lo rechaza e indica el stock disponible.
-11. **Dado** un cambio de estado, **cuando** se guarda, **entonces** se registra la fecha del cambio (y opcionalmente el usuario) para mantener un historial del movimiento.
+11. **Dado** un cambio de estado, **cuando** se guarda, **entonces** se registra la fecha del cambio (`statusChangedAt`) para mantener un historial del movimiento.
 
 ---
 
@@ -356,9 +381,10 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 **Alcance y decisiones**:
 
 - Aplica a **salidas a cliente y traslados entre almacenes**; las devoluciones a proveedor (órdenes de compra) quedan fuera de esta versión.
-- Solo se puede iniciar una devolución sobre movimientos **Entregado** (salidas) o **Recibido** (traslados). No se permite desde Despachado ni En tránsito: la mercadería aún no ha llegado a destino y debe completarse primero la entrega o recepción.
+- Solo se puede iniciar una devolución sobre movimientos **Entregado** (salidas) o **Recibido** (traslados). No se permite desde Despachado ni En tránsito: la mercadería aún no ha llegado a destino y debe completarse primero la entrega o recepción (HU12).
 - Se permiten **devoluciones parciales**.
 - La mercadería devuelta **dañada no vuelve al stock disponible**; se registra como merma.
+- La bodega de origen debe estar activa para recibir la devolución (HU5); si está desactivada, la devolución no puede pasar a Recibida en bodega hasta reactivarla.
 
 **Ciclo de vida de la devolución**: Solicitada → Aprobada → Recibida en bodega → Cerrada; Rechazada posible antes de Recibida en bodega.
 
@@ -370,18 +396,19 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 
 **Escenarios de Aceptación**:
 
-1. **Dado** un movimiento en estado Entregado o Recibido, **cuando** el usuario registra una devolución, **entonces** se crea un documento de devolución nuevo, vinculado al movimiento original, que no modifica al original.
-2. **Dado** un movimiento en estado Despachado, En tránsito o previo a ellos, **cuando** el usuario intenta registrar una devolución, **entonces** el sistema la rechaza e indica que primero debe completarse la entrega o recepción.
+1. **Dada** una salida en estado Entregado o un traslado en estado Recibido, **cuando** el usuario registra una devolución, **entonces** se crea un documento de devolución nuevo, vinculado al movimiento original, que no modifica al original.
+2. **Dada** una salida antes de Entregado o un traslado antes de Recibido (incluidos Despachado y En tránsito), **cuando** el usuario intenta registrar una devolución, **entonces** el sistema la rechaza e indica que primero debe completarse la entrega o recepción.
 3. **Dado** que el usuario registra una devolución, **cuando** deja el motivo en blanco, **entonces** el sistema impide guardar y explica qué se necesita; el motivo se elige entre valores definidos (dañado, error de pedido, rechazo del cliente, vencido), no texto libre.
-4. **Dado** un movimiento con una cantidad despachada, **cuando** el usuario solicita una devolución parcial, **entonces** el sistema la acepta siempre que la cantidad no supere lo despachado menos lo ya devuelto.
+4. **Dado** un movimiento o traslado con una cantidad despachada, **cuando** el usuario solicita una devolución parcial, **entonces** el sistema la acepta siempre que la cantidad no supere lo despachado menos lo ya devuelto.
 5. **Dada** una devolución cuya cantidad supera lo despachado menos lo ya devuelto, **cuando** el usuario intenta guardarla, **entonces** el sistema la rechaza e indica la cantidad máxima devolvible.
 6. **Dada** una devolución en estado Solicitada, Aprobada o Rechazada, **cuando** el usuario consulta el stock, **entonces** el stock no ha cambiado.
 7. **Dada** una devolución con cantidad en buen estado, **cuando** pasa a Recibida en bodega, **entonces** el stock disponible del almacén de origen aumenta en esa cantidad.
 8. **Dada** una devolución con cantidad dañada, **cuando** pasa a Recibida en bodega, **entonces** esa cantidad se registra como merma y no aumenta el stock disponible.
 9. **Dada** una devolución de un traslado, **cuando** pasa a Recibida en bodega, **entonces** el stock del almacén de destino disminuye y el del almacén de origen aumenta en la cantidad en buen estado.
 10. **Dada** una devolución con ciclo de vida configurado, **cuando** el usuario intenta una transición inválida (p. ej., de Solicitada a Cerrada), **entonces** el sistema la rechaza con una explicación clara.
-11. **Dado** un movimiento con devoluciones registradas, **cuando** el usuario ve su detalle o la lista, **entonces** se muestra de un vistazo la cantidad total devuelta.
+11. **Dado** un movimiento o traslado con devoluciones registradas, **cuando** el usuario ve su detalle o la lista, **entonces** se muestra de un vistazo la cantidad total devuelta.
 12. **Dada** una devolución Rechazada o Cerrada, **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
+13. **Dada** una devolución cuya bodega de origen está desactivada, **cuando** el usuario intenta pasarla a Recibida en bodega, **entonces** el sistema lo rechaza e indica que la bodega debe estar activa (HU5).
 
 ---
 
@@ -428,7 +455,7 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-013**: El botón de módulo Productos DEBE mostrar el contenido de gestión de productos (entidades).
 - **FR-014**: El botón de módulo Movimientos DEBE mostrar el contenido de gestión de movimientos de inventario; los documentos de respaldo se gestionan desde el producto (HU10).
 - **FR-015**: El botón de módulo Panel DEBE devolver al usuario al panel de inicio.
-- **FR-016**: La pantalla de gestión NO DEBE mostrar la lista de entidades.
+- **FR-016**: La pantalla de gestión DEBE mostrar la lista de entidades junto con los formularios de creación y edición.
 - **FR-017**: La pantalla de gestión DEBE proporcionar la funcionalidad de crear, editar y eliminar entidades.
 - **FR-018**: La pantalla de gestión DEBE proporcionar la funcionalidad de crear, editar y eliminar documentos.
 - **FR-019**: El sistema DEBE navegar a una pantalla de búsqueda dedicada cuando se selecciona el botón Buscar en la barra lateral.
@@ -452,7 +479,7 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-037**: La barra lateral DEBE resaltar visualmente el módulo activo en cada pantalla.
 - **FR-038**: La configuración PUEDE definir un color de acento; el sistema DEBE aplicarlo consistentemente en todo el marco y retroceder de forma segura a los valores integrados cuando esté ausente o sea inválido.
 - **FR-039**: En ventanas gráficas estrechas, la barra lateral DEBE contraerse a una columna de iconos manteniéndose operable.
-- **FR-040**: El sistema DEBE permitir registrar movimientos de inventario de tipo entrada, salida, traslado o ajuste que referencien un producto y un almacén existentes, con una cantidad entero positivo y una fecha de calendario válida.
+- **FR-040**: El sistema DEBE permitir registrar movimientos de inventario de tipo entrada, salida o ajuste que referencien un producto y un almacén existentes, con una cantidad entero positivo y una fecha de calendario válida. Los traslados se registran mediante su flujo propio (HU8) y generan dos movimientos vinculados.
 - **FR-041**: El sistema DEBE calcular y mostrar el saldo de un producto por almacén como la suma de sus movimientos, sin permitir editarlo directamente.
 - **FR-042**: El sistema DEBE rechazar una salida cuya cantidad deje el saldo del producto en el almacén por debajo de cero, indicando el saldo disponible.
 - **FR-043**: Los movimientos guardados NO DEBEN ser editables ni eliminables; el sistema DEBE ofrecer registrar un movimiento de ajuste como corrección.
@@ -501,7 +528,7 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - La versión inicial se centra en la gestión central de datos maestros y documentos en lugar de capacidades ERP avanzadas como flujos de aprobación, períodos de contabilización o informes.
 - La búsqueda se realiza sobre los registros de entidad almacenados.
 - La pantalla de gestión consolida los formularios de añadir/editar entidad y añadir/editar documento en una sola pantalla de gestión.
-- La navegación entre áreas ocurre mediante una barra lateral persistente; la pantalla de gestión aloja ambos paneles de gestión y no muestra la lista de entidades.
+- La navegación entre áreas ocurre mediante una barra lateral persistente; la pantalla de gestión aloja ambos paneles de gestión y muestra la lista de entidades.
 - El logotipo se genera como un monograma SVG en línea derivado del nombre del módulo; no se requieren recursos de imagen externos.
 - Se puede configurar un color de acento opcional para la marca; el resto de la paleta base permanece fija.
 - Solo se muestra una pantalla a la vez; no hay diseño lado a lado del contenido de gestión y búsqueda.

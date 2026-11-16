@@ -16,7 +16,7 @@ Aplicación web de una sola página construida sobre el módulo base de un siste
 Este sistema gestiona el **stock** de productos de una organización. Para ello, implementa dos piezas centrales del modelo de datos base del ERP:
 
 - **Entidad `Producto`** — representa el dato maestro del inventario (artículo o producto), reutilizando la estructura de la entidad base (`Entity`) con sus campos de identidad, contacto y clasificación, extendida según las necesidades del dominio de logística.
-- **Documento `Movimiento de Inventario`** — representa las transacciones que afectan el stock (entradas, salidas, ajustes y traslados), reutilizando la estructura del documento base (`Document`), con su vinculación obligatoria a un producto y su desglose de cantidades y montos.
+- **Documento `Movimiento de Inventario`** — representa las transacciones que afectan el stock (entradas, salidas y ajustes), reutilizando la estructura del documento base (`Document`), con su vinculación obligatoria a un producto y su desglose de cantidades y montos; los traslados generan dos movimientos vinculados.
 
 El módulo incluye además **bodegas** (con código único y estado activo/inactivo), **lotes** con saldo y vencimiento (sugiere FEFO en las salidas), **documentos de soporte** (orden de compra y remisión) vinculados a los movimientos, **traslados** entre bodegas (dos movimientos vinculados con ciclo de estados) y **devoluciones** de salidas y traslados (motivo controlado, merma y ciclo Solicitada → Aprobada → Recibida en bodega → Cerrada).
 
@@ -31,9 +31,9 @@ La aplicación se presenta como un espacio de trabajo ERP coherente:
 1. **Productos** (`Productos`): crear, editar y eliminar productos; desde el detalle se abren sus documentos, lotes y kardex.
 2. **Bodegas** (`Bodegas`): alta con código único; se desactivan en lugar de eliminarse si ya tienen movimientos.
 3. **Movimientos** (`Movimientos`): entradas (aumentan stock), salidas (reducen stock y sugieren lote FEFO), ajustes con dirección; los movimientos son inmutables y sus estados siguen un ciclo de vida (`Pendiente → … → Entregado` para salidas; cancelados nunca afectan stock).
-4. **Lotes**: se crean desde el detalle del producto con saldo inicial; el saldo se calcula a partir de sus movimientos y los vencidos se excluyen de las salidas.
+4. **Lotes**: se crean desde el detalle del producto con saldo inicial en cero; el saldo se calcula a partir de sus movimientos y los vencidos se excluyen de las salidas.
 5. **Búsqueda** (`Buscar`): filtros combinados por texto (ignora tildes/mayúsculas), categoría, bodega y "stock bajo"; el stock bajo se marca con badge.
-6. **Traslados** (botón *Gestionar traslados* en Movimientos): origen → destino con líneas por producto; la bodega destino descuenta al despachar y abona al recibir; el stock total de la empresa no cambia, solo se redistribuye.
+6. **Traslados** (botón *Gestionar traslados* en Movimientos): origen → destino con líneas por producto; la bodega de origen descuenta al despachar y la de destino abona al recibir; el stock total de la empresa no cambia, solo se redistribuye.
 7. **Devoluciones** (panel dentro de Movimientos): devolución parcial sobre salidas y traslados recibidos, con motivo controlado; la merma (cantidad dañada) no vuelve al stock y el stock solo sube al pasar a **Recibida en bodega**; el movimiento original queda intacto y muestra el total devuelto.
 
 Para más detalles sobre la estructura de datos (entidades, documentos, almacenes, lotes, partidas, movimientos de inventario, traslados y devoluciones), consulta [`specs/001-erp-base-module/data-model.md`](specs/001-erp-base-module/data-model.md).

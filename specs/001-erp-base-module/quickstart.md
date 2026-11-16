@@ -11,10 +11,10 @@
 La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas y Buscar**.
 
 1. **Panel**: aterrice en el panel ERP y use un botón de acción rápida (nuevo producto, nuevo movimiento, áreas de gestión o búsqueda) o revise las tarjetas de estadísticas en vivo.
-2. **Productos**: cree un producto con nombre, código y categoría; edítelo o elimínelo desde la lista. Desde el detalle del producto abra sus **documentos**, **lotes** y **kardex**.
+2. **Productos**: cree un producto con nombre, código y categoría; complete opcionalmente identidad, contacto y stock mínimo. Edítelo desde la lista o elimínelo con confirmación si no tiene movimientos; un producto con movimientos no se puede eliminar. Desde el detalle del producto abra sus **documentos**, **lotes** y **kardex**.
 3. **Bodegas**: cree una bodega con código único (p. ej. `CENTRAL`). Desactívela en lugar de eliminarla si ya tiene movimientos.
 4. **Movimientos**: registre una **entrada** (aumenta stock en una bodega), luego una **salida** (reduce stock; sugiere lote FEFO y bloquea saldo negativo). Los movimientos son inmutables: las correcciones se hacen con **ajustes** o **devoluciones**.
-5. **Lotes**: desde el detalle del producto cree un lote con número, saldo inicial y fecha de vencimiento; el saldo se recalcula con sus movimientos y los vencidos se excluyen de las salidas.
+5. **Lotes**: desde el detalle del producto cree un lote con número, saldo inicial en cero y fecha de vencimiento; el saldo se recalcula con sus movimientos y los vencidos se excluyen de las salidas.
 6. **Buscar**: escriba en la barra de búsqueda (ignora tildes y mayúsculas) y combine filtros de categoría, bodega y "stock bajo"; el detalle de producto se abre en modo solo lectura con retorno a los resultados.
 7. **Traslados**: desde *Gestionar traslados* (cabecera de Movimientos) cree un traslado origen → destino con líneas por producto; despáchelo (descuenta el origen) y recíbalo (abona el destino). El stock total no cambia, solo se redistribuye.
 8. **Devoluciones**: en el panel *Devoluciones* (dentro de Movimientos) pulse **Devolver** en una salida o en un traslado recibido; registre motivo y cantidades (buen estado + dañada). Lleve la devolución por su ciclo: `Solicitada → Aprobada → Recibida en bodega → Cerrada` (o `Rechazada`); el stock solo sube al recibirla en bodega y solo en la cantidad en buen estado (la merma no vuelve al stock).

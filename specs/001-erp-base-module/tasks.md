@@ -51,7 +51,7 @@
 
 ---
 
-## Fase 3: Historia de Usuario 1 - Crear y organizar entidades (Prioridad: P1) 🎯 MVP
+## Fase 3: Historia de Usuario 1 - Crear y organizar productos (Prioridad: P1) 🎯 MVP
 
 **Objetivo**: Permitir a los usuarios crear productos (entidades) con validación de obligatoriedad y unicidad, y verlos en la lista.
 
@@ -59,7 +59,7 @@
 
 ### Pruebas para la Historia de Usuario 1
 
-- [X] T012 [P] [US1] Añadir pruebas unitarias de validación de entidades (obligatorios, código duplicado, escape de HTML) en tests/unit/storage.test.js
+- [X] T012 [P] [US1] Añadir pruebas unitarias de validación de productos (obligatorios, código duplicado, escape de HTML) en tests/unit/storage.test.js
 - [X] T013 [P] [US1] Añadir pruebas de integración para crear un producto y verlo en la lista en tests/integration/create-entity.test.js
 - [X] T014 [P] [US1] Añadir pruebas de integración para campos personalizados en formularios, listas y búsqueda en tests/integration/custom-fields.test.js
 
@@ -73,7 +73,7 @@
 
 ---
 
-## Fase 4: Historia de Usuario 2 - Editar y eliminar entidades (Prioridad: P1)
+## Fase 4: Historia de Usuario 2 - Editar y eliminar productos (Prioridad: P1)
 
 **Objetivo**: Permitir actualizar o eliminar productos almacenados, manteniendo la coherencia con listas, búsqueda y panel.
 
@@ -81,8 +81,8 @@
 
 ### Pruebas para la Historia de Usuario 2
 
-- [X] T018 [P] [US2] Añadir pruebas unitarias de actualización y eliminación de entidades en tests/unit/storage.test.js
-- [X] T019 [P] [US2] Añadir pruebas de integración para editar y eliminar una entidad en tests/integration/edit-delete-entity.test.js
+- [X] T018 [P] [US2] Añadir pruebas unitarias de actualización y eliminación de productos en tests/unit/storage.test.js
+- [X] T019 [P] [US2] Añadir pruebas de integración para editar y eliminar un producto en tests/integration/edit-delete-entity.test.js
 
 ### Implementación de la Historia de Usuario 2
 
@@ -160,7 +160,7 @@
 
 ## Fase 8: Historia de Usuario 4 - Registrar movimientos de inventario (Prioridad: P1)
 
-**Objetivo**: Registrar entradas, salidas, traslados y ajustes en una pantalla dedicada, con saldo calculado y movimientos inmutables.
+**Objetivo**: Registrar entradas, salidas y ajustes en una pantalla dedicada, con saldo calculado y movimientos inmutables; los traslados se capturan en su propio flujo (HU8).
 
 **Prueba Independiente**: Un usuario registra una entrada y ve subir el saldo, registra una salida y ve bajar el saldo; una salida que dejaría el saldo en negativo se rechaza indicando el saldo disponible; un movimiento guardado no puede editarse ni eliminarse.
 
@@ -171,7 +171,7 @@
 
 ### Implementación de la Historia de Usuario 4
 
-- [X] T041 [P] [US4] Implementar StockMovement con tipos entrada/salida/traslado/ajuste, cantidad entero positiva, fecha válida, lote y documento de origen opcionales en src/storage.js (data-model.md → StockMovement, FR-040, FR-044)
+- [X] T041 [P] [US4] Implementar StockMovement con tipos entrada/salida/ajuste para captura manual y traslado para los movimientos generados por US8, cantidad entero positiva, fecha válida, lote y documento de origen opcionales en src/storage.js (data-model.md → StockMovement, FR-040, FR-044)
 - [X] T042 [US4] Calcular el saldo por producto y almacén como suma de sus movimientos y rechazar saldos negativos indicando el saldo disponible en src/storage.js (FR-041, FR-042)
 - [X] T043 [P] [US4] Crear el formulario de movimientos con validaciones de obligatoriedad, cantidad y fecha en src/components/movement-form.js
 - [X] T044 [P] [US4] Crear la lista de movimientos con el saldo actual del producto por almacén de un vistazo en src/components/movement-list.js
@@ -191,11 +191,11 @@
 
 ### Pruebas para la Historia de Usuario 7
 
-- [X] T048 [P] [US7] Añadir pruebas de integración del kárdex con saldo acumulado, movimientos anulados y estado vacío en tests/integration/kardex.test.js
+- [X] T048 [P] [US7] Añadir pruebas de integración del kárdex con saldo acumulado, movimientos cancelados y estado vacío en tests/integration/kardex.test.js
 
 ### Implementación de la Historia de Usuario 7
 
-- [X] T049 [P] [US7] Crear la vista de kárdex con saldo acumulado, estado vacío y marcado de anulados en src/components/kardex-view.js
+- [X] T049 [P] [US7] Crear la vista de kárdex con saldo acumulado, estado vacío y marcado de cancelados en src/components/kardex-view.js
 - [X] T050 [US7] Conectar el kárdex desde el detalle del producto con filtros por tipo de movimiento y rango de fechas, en modo solo lectura, en src/app.js
 
 **Punto de control**: El stock calculado es auditable de extremo a extremo.
@@ -223,7 +223,7 @@
 
 ---
 
-## Fase 11: Historia de Usuario 9 - Definir stock mínimo por producto y almacén (Prioridad: P2)
+## Fase 11: Historia de Usuario 9 - Definir stock mínimo por producto (Prioridad: P2)
 
 **Objetivo**: Fijar un stock mínimo por producto y marcar visualmente el "stock bajo" en listas y búsqueda.
 
@@ -271,7 +271,7 @@
 
 ### Pruebas para la Historia de Usuario 11
 
-- [X] T064 [P] [US11] Añadir pruebas de integración de búsqueda por SKU, nombre, categoría y ubicación con filtros combinados en tests/integration/search-entities.test.js
+- [X] T064 [P] [US11] Añadir pruebas de integración de búsqueda por SKU, nombre, categoría, descripción o fecha objetivo con filtros combinados en tests/integration/search-entities.test.js
 
 ### Implementación de la Historia de Usuario 11
 

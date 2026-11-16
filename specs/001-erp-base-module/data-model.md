@@ -231,7 +231,7 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 
 ### Traslado
 
-- El traslado debe tener origen y destino distintos; ambas bodegas deben existir y estar activas al crearlo y al despacharlo.
+- El traslado debe tener origen y destino distintos; ambas bodegas deben existir y estar activas al crearlo y al despacharlo, y la de destino debe seguir activa al recibirlo.
 - Cada línea debe indicar un artículo existente y una cantidad entero positiva; no se permiten líneas duplicadas por artículo.
 - El saldo disponible en la bodega de origen debe ser suficiente al crear y al despachar el traslado.
 - El efecto en el saldo lo gobierna el ciclo de vida (HU 12): la pierna de origen descuenta al despachar y la pierna de destino suma al recibir; cancelar un traslado en `Solicitado` no altera saldo.
