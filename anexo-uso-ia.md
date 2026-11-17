@@ -25,7 +25,7 @@ Se declara además que:
 
 ## 2. Secuencia de prompts
 
-> **[MS]** = prompt realizado por **Martin Salas**. Los prompts marcados con [MS] se transcriben **textualmente** desde la base de datos local de OpenCode (`~/.local/share/opencode/opencode.db`); los demás prompts corresponden a otros integrantes del equipo y se registran como resumen (§7).
+> **[MS]** = prompt realizado por **Martin Salas**; **[EG]** = prompt realizado por **Estefano Gutiérrez**. Los prompts marcados con [MS] o [EG] se transcriben **textualmente** desde la base de datos local de OpenCode (`~/.local/share/opencode/opencode.db`) del integrante que los realizó; los demás prompts corresponden a otros integrantes del equipo y se registran como resumen (§7).
 
 ### Sesión 1 — 2026-10-19/20 (plantillas y plan) — big-pickle / mimo-v2.6-flash-free
 
@@ -89,7 +89,7 @@ quiero que ajustes todo esto respecto a que nos toco la tematica de "logistica e
 
 | # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
 |---|---|---|---|---|
-| 17 | 29/10 | Conversión del MER a código | "Quiero que el archivo MER.svg lo pases a código. Quiero que crees un archivo tipo mermaid. Puedes?" | `MER.mmd` creado con 20 tablas y 28 relaciones, sin tocar el SVG (commit `6d02874`) |
+| 17 | 29/10 | Conversión del MER a código | [EG] "Quiero que el archivo MER.svg lo pases a código. Quiero que crees un archivo tipo mermaid. Puedes?" | `MER.mmd` creado con 20 tablas y 28 relaciones, sin tocar el SVG (commit `6d02874`) |
 
 ### Sesión 4 — 2026-10-30 (spec.md y ajustes de la US 3) — mimo-v2.6-flash-free
 
@@ -138,17 +138,38 @@ me gustaria que hicieras un ajuste y que en vez de que sea una aplicacion, sea e
 
 | # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
 |---|---|---|---|---|
-| 24 | 01/11 | Acotar alcance | "Lo que quiero es SOLO modificar esos US. No quiero intervenir en ningún otro archivo que no sean los US 9 y 10 de spec.md" | Edición limitada a `spec.md` |
-| 25 | 01/11 | Texto propio de las US | Entrega de las frases finales de la US 9 y la US 10, redactadas por el integrante (incluye "Por qué esta prioridad" y "Prueba Independiente") | Texto base de ambas US en `spec.md` |
+| 24 | 01/11 | Acotar alcance | [EG] "Lo que quiero es SOLO modificar esos US. No quiero intervenir en ningún otro archivo que no sean los US 9 y 10 de spec.md" | Edición limitada a `spec.md` |
+| 25 | 01/11 | Texto propio de las US | [EG] Entrega de las frases finales de la US 9 y la US 10, redactadas por el integrante (incluye "Por qué esta prioridad" y "Prueba Independiente") | Texto base de ambas US en `spec.md` |
 | 26 | 01/11 | US 4 | [MS] "necesito que hagas la historia de usuario 4" | US 4 en `spec.md` (commit `fbff753`) |
-| 27 | 02/11 | Escenarios de aceptación US 9 | "Solo modifica los escenarios de aceptación del US 9" | Edit en `spec.md` (escenarios de la US 9) |
-| 28 | 02/11 | Escenarios de aceptación US 10 | "Ahora solo modifica los escenarios de aceptación del US 10" | Edit en `spec.md` (escenarios de la US 10; commit `7d835e9`) |
+| 27 | 02/11 | Escenarios de aceptación US 9 | [EG] "Solo modifica los escenarios de aceptación del US 9" | Edit en `spec.md` (escenarios de la US 9) |
+| 28 | 02/11 | Escenarios de aceptación US 10 | [EG] "Ahora solo modifica los escenarios de aceptación del US 10" | Edit en `spec.md` (escenarios de la US 10; commit `7d835e9`) |
 
-**Prompt completo (texto literal) — Sesión 5:**
+**Prompts completos (texto literal) — Sesión 5:**
+
+**#24 · 01/11 20:56**
+```
+lo que quiero es SOLO modificar esos US. No quiero intervenir en ningun otro archivo que no sean los US 9 y 10 de  spec.md
+```
+
+**#25 · 01/11 23:42**
+```
+Como encargado de bodega, quiero definir un stock mínimo por producto y almacén, para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
+Como usuario de negocio, quiero crear y organizar los documentos de logística junto a los productos, para mantener la actividad transaccional ordenada y no perder evidencia de las operaciones.
+```
 
 **#26 · 01/11 17:04**
 ```
 necesito que hagas la historia de usuario 4
+```
+
+**#27 · 02/11 00:01**
+```
+Solo modifica los escenarios de aceptacion del US 9
+```
+
+**#28 · 02/11 00:04**
+```
+Ahora Solo modifica los escenarios de aceptacion del US 10
 ```
 
 ### Sesión 6 — 2026-11-02 (revisión de especificación) — big-pickle
@@ -366,7 +387,7 @@ necesito que localizes todos los promps que he realizado de acuerdo a este traba
 | Commit de la revisión final | Pendiente: lo realiza el equipo manualmente en `main` |
 | Configuración de la herramienta en el repo | `.opencode/` (comandos de SpecKit) |
 | Transcripciones de sesión | Exportadas por el integrante que las realizó (no se adjuntan capturas con datos personales) |
-| Base de datos local de OpenCode (prompts textuales de Martin Salas) | `~/.local/share/opencode/opencode.db` en la máquina del integrante (§2, texto literal) |
+| Base de datos local de OpenCode (prompts textuales de Martin Salas y Estefano Gutiérrez) | `~/.local/share/opencode/opencode.db` en la máquina de cada integrante (§2, texto literal) |
 
 > No adjuntar capturas con datos personales, correos, tokens ni credenciales.
 
