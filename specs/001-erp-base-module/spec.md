@@ -2,7 +2,7 @@
 
 **Rama de la funcionalidad**: 001-erp-base-module  
 **Creada**: 2026-07-08  
-**Estado**: Borrador  
+**Estado**: Implementado (v1) · Ampliación propuesta: US 15–16  
 **Entrada**: Descripción del usuario: "Construir un módulo base de software de planificación de recursos empresariales (ERP) que pueda extenderse en módulos ERP personalizados. Debe proporcionar gestión de datos maestros (entidades) y documentos transaccionales vinculados con capacidades de crear/editar/eliminar/buscar."
 
 ## Propósito
@@ -18,6 +18,19 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 - Q: ¿Habrá control de acceso por rol en el MVP, de modo que el Encargado de Bodega y el Operador de Inventario vean pantallas o acciones diferentes? → A: Opción A: sin autenticación; todos los usuarios tienen los mismos permisos y los roles de las historias son solo actores de los escenarios.
 - Q: ¿Cómo debe representarse un traslado entre bodegas en el modelo de datos para que sus saldos cuadren? → A: Opción A: dos movimientos vinculados que comparten el documento del traslado — un tramo de salida en el almacén de origen y un tramo de entrada en el almacén de destino —; el saldo de cada almacén sigue siendo la suma de sus movimientos.
 - Q: ¿Dónde deben guardarse el estado de ciclo de vida de un movimiento y el registro de una devolución, que hoy no existen en el modelo de datos? → A: Opción A: el estado vive en el propio movimiento (campo `status` con su fecha de cambio) y la devolución es una entidad propia con motivo, cantidades, merma y ciclo de vida, vinculada al movimiento original sin modificarlo.
+
+### Session 2026-11-16 — Reservas y tomas de inventario
+
+- Q: ¿Qué significa exactamente "disponible", que hoy usan las HU 4, 8, 9 y 12? → A: Existencias físicas menos los saldos pendientes de las reservas activas no vencidas, calculado por producto y bodega. El kárdex y el saldo por lote siguen mostrando el físico.
+- Q: ¿Una reserva compromete un lote concreto? → A: No en esta versión: la reserva se controla por producto y bodega, y el lote se valida por su propio saldo físico (HU6).
+- Q: ¿Sobre qué saldo se evalúa el stock mínimo? → A: Sobre el disponible total (físico menos los saldos pendientes de reservas activas), para no reponer mercadería ya comprometida.
+- Q: ¿Una toma de inventario congela la bodega mientras se cuenta? → A: No. El saldo del sistema se muestra como referencia al iniciar, pero la diferencia se calcula contra el saldo vigente al confirmar, de modo que un movimiento ocurrido durante el conteo no genere un ajuste erróneo.
+- Q: ¿Cómo se registra una liberación parcial de una reserva? → A: La reserva sigue `Activa`; se acumula `releasedQuantity` y el saldo reservado efectivo es `quantity - releasedQuantity`. Solo una liberación total la deja `Liberada`.
+- Q: ¿Qué ocurre si la salida asociada no cubre todo el saldo reservado? → A: La salida debe cubrir el saldo reservado pendiente o liberar la diferencia antes de registrarla; la reserva se consume por ese saldo pendiente y queda `Consumida`.
+- Q: ¿Cuándo vence una reserva y cómo se evalúa? → A: Al terminar el día de `expiresAt` en hora local. La evaluación es perezosa: se aplica al consultar el stock o al operar con la reserva, sin tareas programadas.
+- Q: ¿Cómo se cuenta un producto que tiene lotes pero conserva saldo físico sin lote? → A: La toma agrega una línea "sin lote" para ese saldo, de modo que el ajuste no descuadre el saldo por lote.
+- Q: ¿Se puede modificar o anular una toma confirmada? → A: No; una toma `Confirmada` es inmutable. Solo se anula antes de confirmar, y el avance exige el paso `Borrador → En conteo`.
+- Q: ¿Qué ocurre si tras una toma el físico queda por debajo de las reservas activas? → A: El disponible puede quedar negativo; se muestra y se advierte, y se bloquean nuevas reservas y salidas hasta que el físico vuelva a cubrir las reservas o se liberen.
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
@@ -54,7 +67,7 @@ Decisión de datos y justificación:
   duplicados en los datos maestros; la comparación no distingue mayúsculas/minúsculas.
 - La categoría usa valores controlados para evitar clasificaciones inconsistentes y sesgos
   en análisis posteriores.
-- El stock mínimo se guarda como entero no negativo y se compara con el saldo total del producto (HU9).
+- El stock mínimo se guarda como entero no negativo y se compara con el disponible total del producto (físico menos los saldos pendientes de reservas activas, HU9).
 - Los campos personalizados permiten extender el producto sin modificar el código base (FR-026 a FR-028).
 - Los datos se guardan en localStorage por ser un MVP sin servidor; esto limita la
   seguridad y la persistencia (ver issue de decisiones).
@@ -80,13 +93,14 @@ Como encargado de bodega, quiero actualizar o eliminar productos cuando cambien 
 2. **Dado** que el usuario está editando un producto, **cuando** cancela la edición, **entonces** los cambios no se guardan y el producto conserva sus datos originales.
 3. **Dado** que el usuario edita el código de un producto, **cuando** el nuevo código coincide con el de otro producto, **entonces** el sistema rechaza el guardado e indica que el código ya está en uso.
 4. **Dado** que el usuario modifica campos personalizados o el stock mínimo al editar, **cuando** guarda, **entonces** los nuevos valores se persisten y se reflejan en la lista.
-5. **Dado** un producto sin movimientos que ya no es relevante, **cuando** el usuario lo elimina y confirma la acción, **entonces** desaparece de la lista y de la búsqueda, y sus documentos y lotes se eliminan en cascada.
+5. **Dado** un producto sin movimientos ni reservas activas que ya no es relevante, **cuando** el usuario lo elimina y confirma la acción, **entonces** desaparece de la lista y de la búsqueda, y sus documentos y lotes se eliminan en cascada.
 6. **Dado** un producto sin movimientos, **cuando** el usuario cancela la confirmación de eliminación, **entonces** el producto permanece intacto en la lista.
 7. **Dado** un producto con movimientos de inventario registrados, **cuando** el usuario intenta eliminarlo, **entonces** el sistema rechaza la eliminación y explica que debe conservarse el histórico del inventario.
 8. **Dados** cientos de productos almacenados, **cuando** el usuario edita o elimina uno, **entonces** la lista se actualiza correctamente y sigue siendo ágil.
 9. **Dado** que el usuario edita un producto con lotes o documentos de respaldo pero sin movimientos, **cuando** guarda los cambios, **entonces** esos registros asociados se conservan y siguen vinculados al producto.
-10. **Dado** que el usuario edita el stock mínimo de un producto, **cuando** el nuevo mínimo queda por encima del saldo total, **entonces** la marca de "stock bajo" se actualiza al volver a consultar la lista (HU9).
+10. **Dado** que el usuario edita el stock mínimo de un producto, **cuando** el nuevo mínimo queda por encima del disponible total, **entonces** la marca de "stock bajo" se actualiza al volver a consultar la lista (HU9).
 11. **Dado** un producto con movimientos de inventario registrados, **cuando** el usuario edita sus datos maestros y guarda, **entonces** los cambios se persisten y el histórico de movimientos se conserva intacto; solo la eliminación está bloqueada (escenario 7).
+12. **Dado** un producto sin movimientos pero con reservas activas, **cuando** el usuario intenta eliminarlo, **entonces** el sistema rechaza la eliminación e indica que debe liberar o consumir las reservas primero (HU15).
 
 ---
 
@@ -130,13 +144,14 @@ Como encargado de bodega, quiero una pantalla dedicada donde registre los movimi
 1. **Dado** que el usuario está en la pantalla de gestión de movimientos, **cuando** crea uno nuevo, **entonces** debe indicar tipo (entrada, salida o ajuste), producto, almacén, cantidad y fecha; si deja un campo obligatorio en blanco, el sistema impide guardar y explica qué se necesita.
 2. **Dada** una cantidad que no es un entero positivo o una fecha que no es una fecha de calendario válida, **cuando** el usuario intenta guardar, **entonces** el sistema rechaza el guardado con una explicación clara.
 3. **Dado** un producto y un almacén existentes, **cuando** el usuario registra una entrada (sin ciclo de vida configurado), **entonces** el movimiento se guarda y el saldo del producto en ese almacén aumenta en la cantidad indicada; con ciclo de vida, el efecto en el stock sigue la HU12.
-4. **Dada** una salida cuya cantidad supera el saldo disponible del producto en el almacén, **cuando** el usuario intenta guardarla sin ciclo de vida configurado o despacharla con ciclo configurado, **entonces** el sistema la rechaza e indica el saldo disponible.
+4. **Dada** una salida cuya cantidad supera el saldo disponible del producto en el almacén, **cuando** el usuario intenta guardarla sin ciclo de vida configurado o despacharla con ciclo configurado, **entonces** el sistema la rechaza e indica el saldo disponible. Se entiende por "disponible" las existencias físicas menos las reservas activas (HU15).
 5. **Dado** un movimiento guardado, **cuando** el usuario vuelve a la pantalla de gestión, **entonces** ve el saldo actual del producto por almacén de un vistazo.
-6. **Dado** que el usuario asocia un lote a un movimiento, **cuando** guarda, **entonces** el lote debe pertenecer al mismo producto; si no, el sistema lo rechaza con una explicación.
+6. **Dado** que el usuario asocia un lote a un movimiento, **cuando** guarda, **entonces** el lote debe pertenecer al mismo producto y la cantidad no puede superar el saldo físico de ese lote; si no, el sistema lo rechaza con una explicación.
 7. **Dado** un movimiento, **cuando** el usuario lo registra, **entonces** puede asociarlo opcionalmente al documento que lo origina (p. ej. una orden de compra o una remisión).
 8. **Dado** un movimiento ya guardado, **cuando** el usuario intenta editar sus datos o eliminarlo, **entonces** el sistema no lo permite y explica que las correcciones se registran con un movimiento de ajuste y que solo se puede avanzar el estado según su ciclo de vida (HU12).
 9. **Dado** que el usuario llega a la pantalla de gestión desde la barra lateral o una acción rápida del panel, **cuando** la pantalla se abre, **entonces** el formulario está listo para introducir datos y el módulo activo queda resaltado.
 10. **Dado** que el usuario está en la pantalla de gestión, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio sin perder los movimientos almacenados.
+11. **Dado** un producto con reservas activas, **cuando** el usuario registra una entrada, **entonces** el físico y el disponible aumentan en la misma cantidad, porque las reservas no se alteran.
 
 ---
 
@@ -155,10 +170,11 @@ Como encargado de bodega, quiero crear, editar y desactivar las bodegas donde se
 3. **Dada** una bodega ya registrada con un código determinado, **cuando** el usuario intenta crear otra con el mismo código (incluso si la primera está desactivada), **entonces** el sistema impide guardar e indica que el código está duplicado.
 4. **Dada** una bodega activa, **cuando** el usuario edita su nombre o dirección, **entonces** los cambios se guardan y los movimientos históricos que la referencian muestran la información actualizada sin que cambien sus cantidades ni los saldos.
 5. **Dada** una bodega con movimientos registrados, **cuando** el usuario intenta eliminarla, **entonces** el sistema rechaza la eliminación y sugiere desactivarla para conservar el histórico de inventario.
-6. **Dada** una bodega desactivada, **cuando** el usuario intenta registrar un movimiento con ella, trasladar hacia ella o recibir en ella una devolución, **entonces** el sistema rechaza la operación e indica que la bodega no puede recibir movimientos.
+6. **Dada** una bodega desactivada, **cuando** el usuario intenta registrar un movimiento con ella, trasladar hacia ella, reservar en ella o recibir en ella una devolución, **entonces** el sistema rechaza la operación e indica que la bodega no puede recibir movimientos.
 7. **Dada** una bodega desactivada, **cuando** el usuario consulta la lista de movimientos o los saldos existentes, **entonces** el histórico de esa bodega sigue visible y sus saldos no cambian.
 8. **Dada** una bodega desactivada, **cuando** el usuario la vuelve a activar, **entonces** queda disponible de nuevo para registrar movimientos sin necesidad de crear otra bodega.
 9. **Dado** que el encargado llega a la pantalla de bodegas desde la barra lateral, **cuando** la pantalla se abre, **entonces** ve la lista de bodegas con su código, nombre y estado (activa o desactivada) de un vistazo.
+10. **Dada** una bodega con reservas activas, **cuando** el usuario intenta desactivarla, **entonces** el sistema lo impide e indica que primero debe liberar o consumir esas reservas (HU15).
 
 ---
 
@@ -187,6 +203,7 @@ Como operador de inventario, quiero registrar los lotes de cada producto con sus
 8. **Dado** un producto con lotes vencidos o próximos a vencer, **cuando** el usuario consulta la lista de lotes, **entonces** esos lotes se marcan visualmente para detectarlos de un vistazo.
 9. **Dado** un producto sin lotes registrados, **cuando** el operador registra una salida, **entonces** puede guardarla sin lote porque el lote sigue siendo opcional en el movimiento.
 10. **Dado** un lote con movimientos asociados, **cuando** el usuario intenta eliminarlo, **entonces** el sistema rechaza la eliminación para conservar la trazabilidad de los movimientos.
+11. **Dado** un movimiento o una línea de traslado con un lote indicado, **cuando** la cantidad supera el saldo físico de ese lote, **entonces** el sistema rechaza la operación e indica el saldo del lote.
 
 ---
 
@@ -198,6 +215,10 @@ Como encargado de bodega, quiero ver el historial completo de movimientos de un 
 
 **Prueba Independiente**: Un usuario abre el detalle de un producto, ve sus movimientos ordenados por fecha con el saldo acumulado después de cada uno, y comprueba que el último saldo coincide con el stock mostrado en la lista de productos.
 
+**Alcance y decisiones**:
+
+- El saldo acumulado del kárdex es **físico**: las reservas no son movimientos y no aparecen en el historial. El encabezado del kárdex muestra físico, reservado y disponible, para que el último saldo no se confunda con el disponible (HU15).
+
 **Escenarios de Aceptación**:
 
 1. **Dado** un producto con movimientos registrados, **cuando** el usuario abre su historial, **entonces** ve cada movimiento con fecha, tipo, bodega, cantidad, estado y saldo acumulado posterior, ordenados del más antiguo al más reciente.
@@ -207,6 +228,7 @@ Como encargado de bodega, quiero ver el historial completo de movimientos de un 
 5. **Dado** un historial con muchos movimientos, **cuando** el usuario lo consulta, **entonces** puede filtrar por tipo de movimiento y por rango de fechas.
 6. **Dado** un producto marcado con stock bajo, **cuando** el usuario revisa su historial, **entonces** puede identificar el último movimiento que dejó el saldo por debajo del mínimo.
 7. **Dado** el historial en modo solo lectura, **cuando** el usuario intenta modificar un movimiento desde ahí, **entonces** el sistema lo impide y lo remite a la pantalla de movimientos.
+8. **Dado** un producto con reservas activas, **cuando** el usuario abre su kárdex, **entonces** el historial y el saldo acumulado no cambian, y el encabezado muestra el reservado y el disponible por separado.
 
 ---
 
@@ -222,6 +244,7 @@ Como encargado de bodega, quiero trasladar unidades de un producto desde una bod
 
 - Un traslado tiene bodega de origen, bodega de destino, fecha, estado y una o más líneas (producto + cantidad); un mismo producto no puede repetirse en dos líneas. Cada línea puede incluir un lote opcional del mismo producto, sujeto a las reglas FEFO y de vencimiento de la HU6.
 - El stock total de la empresa no cambia: solo se redistribuye entre bodegas.
+- Solo se pueden trasladar unidades **disponibles**: las reservas activas no se mueven entre bodegas (HU15).
 - Las unidades despachadas y aún no recibidas quedan **en tránsito**: no están disponibles en ninguna de las dos bodegas. El tránsito comienza al pasar a Despachado y se mantiene durante En tránsito hasta Recibido.
 - El ciclo de estados sigue la Historia de Usuario 12, con la cadena de referencia Solicitado → Despachado → En tránsito → Recibido.
 - Un traslado confirmado es inmutable; una corrección se registra con un movimiento de ajuste, igual que en la Historia de Usuario 4.
@@ -231,7 +254,7 @@ Como encargado de bodega, quiero trasladar unidades de un producto desde una bod
 
 1. **Dado** que el usuario está en la pantalla de traslados, **cuando** crea uno nuevo, **entonces** debe indicar bodega de origen, bodega de destino, fecha y al menos un producto con cantidad y, opcionalmente, un lote por línea; si falta un campo obligatorio, el sistema impide guardar y explica qué se necesita.
 2. **Dado** un traslado en preparación, **cuando** el usuario selecciona la misma bodega como origen y destino, **entonces** el sistema rechaza la operación e indica que deben ser distintas.
-3. **Dado** un producto con 50 unidades en la bodega de origen, **cuando** el usuario intenta trasladar 999, **entonces** el sistema rechaza la operación e indica el saldo disponible en origen.
+3. **Dado** un producto con 50 unidades disponibles en la bodega de origen, **cuando** el usuario intenta trasladar 999, **entonces** el sistema rechaza la operación e indica el saldo disponible en origen.
 4. **Dada** una cantidad no positiva o no numérica, **cuando** el usuario intenta guardar la línea, **entonces** el sistema la rechaza con una explicación clara.
 5. **Dado** un traslado en estado "Solicitado", **cuando** el usuario lo despacha (pasa a "Despachado"), **entonces** el saldo de origen disminuye en la cantidad trasladada y las unidades quedan marcadas como "en tránsito" (desde "Despachado" hasta "Recibido"), sin estar disponibles en destino.
 6. **Dado** un traslado "En tránsito", **cuando** el usuario consulta el stock de cualquiera de las dos bodegas, **entonces** las unidades en tránsito no se suman al saldo disponible y se informan por separado.
@@ -241,28 +264,31 @@ Como encargado de bodega, quiero trasladar unidades de un producto desde una bod
 10. **Dado** un traslado despachado o recibido, **cuando** el usuario consulta la trazabilidad de un producto, **entonces** el traslado aparece en su historial con las piernas de origen y destino y su referencia (HU7).
 11. **Dada** una bodega de destino desactivada, **cuando** el usuario intenta trasladar hacia ella o recibir en ella un traslado, **entonces** el sistema lo rechaza e indica que la bodega no puede recibir movimientos.
 12. **Dado** un traslado con un lote vencido en alguna de sus líneas, **cuando** el usuario intenta despacharlo, **entonces** el sistema lo rechaza e indica que el lote está vencido (HU6).
+13. **Dado** un producto con 50 unidades físicas y 30 reservadas en la bodega de origen, **cuando** el usuario intenta trasladar 30, **entonces** el sistema rechaza la operación porque solo 20 están disponibles.
 
 ---
 
 ### Historia de Usuario 9 - Definir stock mínimo por producto (Prioridad: P2)
-Como encargado de bodega, quiero definir un stock mínimo por producto (sobre su saldo total en todas las bodegas), para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
+Como encargado de bodega, quiero definir un stock mínimo por producto (sobre su disponible total en todas las bodegas), para saber de inmediato qué artículos necesitan reposición antes de que se agoten.
 
 **Por qué esta prioridad**: El stock mínimo automatiza la detección de faltantes para evitar conteos manuales, ganando valor a medida que crecen el catálogo y los almacenes; sin embargo, no bloquea el MVP, ya que las entradas y salidas pueden gestionarse completas sin él.
 
-**Prueba Independiente**: Un encargado de bodega fija un stock mínimo de 10 unidades para un producto, guarda, y al consultar la lista o la búsqueda ve el producto marcado como "stock bajo" cuando su saldo total es 5; al subir el saldo con una entrada a 15, la marca desaparece.
+**Prueba Independiente**: Un encargado de bodega fija un stock mínimo de 10 unidades para un producto, guarda, y al consultar la lista o la búsqueda ve el producto marcado como "stock bajo" cuando su disponible total es 5; al subir el disponible con una entrada a 15, la marca desaparece.
 
 **Alcance y decisiones**:
 
-- El stock mínimo se compara con el saldo total del producto (suma de sus bodegas), no con el saldo de una bodega concreta.
+- El stock mínimo se compara con el **disponible total** del producto (suma de sus bodegas menos los saldos pendientes de reservas activas), no con el saldo de una bodega concreta ni con el físico.
+- Un producto puede tener stock físico y aun así marcarse como "stock bajo" si todo su físico está reservado (HU15).
 
 **Escenarios de Aceptación**:
 
 1. **Dado** que el encargado de bodega está creando o editando un producto, **cuando** introduce un stock mínimo de 10 unidades y guarda, **entonces** el valor se guarda y se muestra junto al producto en la lista.
-2. **Dado** un producto con stock mínimo definido y un saldo total de 5 unidades (sumando sus bodegas), **cuando** el usuario consulta la lista o la pantalla de búsqueda, **entonces** el producto aparece marcado visualmente como "stock bajo".
-3. **Dado** un producto marcado como "stock bajo", **cuando** el usuario registra una entrada que eleva su saldo a 15 unidades, **entonces** la marca de "stock bajo" desaparece al volver a consultar la lista o la búsqueda.
+2. **Dado** un producto con stock mínimo definido y un disponible total de 5 unidades (sumando sus bodegas y descontando reservas), **cuando** el usuario consulta la lista o la pantalla de búsqueda, **entonces** el producto aparece marcado visualmente como "stock bajo".
+3. **Dado** un producto marcado como "stock bajo", **cuando** el usuario registra una entrada que eleva su disponible a 15 unidades, **entonces** la marca de "stock bajo" desaparece al volver a consultar la lista o la búsqueda.
 4. **Dada** una cantidad negativa o no numérica, **cuando** el usuario intenta guardar el stock mínimo, **entonces** el sistema rechaza el guardado con una explicación clara.
 5. **Dado** que el usuario deja el stock mínimo en blanco, **cuando** guarda el producto, **entonces** el producto se guarda sin mínimo y la lista no muestra ninguna marca de "stock bajo" para él.
-6. **Dado** un producto cuyo saldo es igual a su stock mínimo, **cuando** el usuario consulta la lista o la búsqueda, **entonces** no se marca como "stock bajo" porque el saldo no queda por debajo del mínimo.
+6. **Dado** un producto cuyo disponible es igual a su stock mínimo, **cuando** el usuario consulta la lista o la búsqueda, **entonces** no se marca como "stock bajo" porque el disponible no queda por debajo del mínimo.
+7. **Dado** un producto con stock mínimo 10, 15 unidades físicas y 10 reservadas, **cuando** el usuario consulta la lista, **entonces** el producto aparece como "stock bajo" porque su disponible es 5.
 
 
 ---
@@ -345,8 +371,8 @@ Como jefe de logística, quiero que cada movimiento de inventario y documento de
 6. **Dado** un movimiento de salida o traslado, **cuando** pasa a Despachado, **entonces** el stock del producto disminuye en la cantidad indicada en el almacén de origen.
 7. **Dado** un traslado, **cuando** pasa a Recibido, **entonces** el stock del producto aumenta en la cantidad indicada en el almacén de destino; una entrada de inventario vinculada a una orden de compra aumenta el stock al guardarse.
 8. **Dado** un movimiento ya Despachado, **cuando** el usuario intenta cancelarlo, **entonces** el sistema lo rechaza con una explicación clara que indica que primero debe completarse la Entrega o Recepción y que, una vez Entregado o Recibido, la corrección se registra con una devolución (Historia de Usuario 14).
-9. **Dado** un movimiento, traslado o devolución en un estado final (Cerrada, Cancelado, Entregado, Recibido, Rechazada), **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
-10. **Dado** un despacho cuya cantidad supera el stock disponible, **cuando** el usuario intenta pasarlo a Despachado, **entonces** el sistema lo rechaza e indica el stock disponible.
+9. **Dado** un movimiento, traslado o devolución en un estado final (Cerrada, Cancelada, Entregada, Recibida, Recibida en bodega, Rechazada), **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
+10. **Dado** un despacho cuya cantidad supera el disponible (existencias físicas menos reservas activas), **cuando** el usuario intenta pasarlo a Despachado, **entonces** el sistema lo rechaza e indica el disponible.
 11. **Dado** un cambio de estado, **cuando** se guarda, **entonces** se registra la fecha del cambio (`statusChangedAt`) para mantener un historial del movimiento.
 
 ---
@@ -410,6 +436,81 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 12. **Dada** una devolución Rechazada o Cerrada, **cuando** el usuario intenta cambiar su estado, **entonces** no se ofrece ninguna transición.
 13. **Dada** una devolución cuya bodega de origen está desactivada, **cuando** el usuario intenta pasarla a Recibida en bodega, **entonces** el sistema lo rechaza e indica que la bodega debe estar activa (HU5).
 
+### Historia de Usuario 15 - Reservar stock para pedidos pendientes (Prioridad: P2)
+
+Como encargado de bodega, quiero reservar unidades de un producto en una bodega para un pedido pendiente, para que ese stock no se comprometa con otro destino y el saldo disponible refleje lo que realmente está comprometido.
+
+**Por qué esta prioridad**: Sin reservas, dos pedidos pueden comprometer las mismas unidades y el conflicto se descubre recién al despachar. La reserva convierte una promesa comercial en un dato verificable. No bloquea el MVP, porque con pocos pedidos simultáneos la operación puede gestionarse a mano, pero se vuelve necesaria a medida que crece el volumen.
+
+**Prueba Independiente**: Un encargado reserva 30 de las 50 unidades disponibles de un producto; el disponible baja a 20 y el físico sigue en 50; intenta registrar una salida de 25 sin referencia y el sistema la rechaza indicando 20 disponibles; al liberar la reserva, el disponible vuelve a 50.
+
+**Alcance y decisiones**:
+
+- Una reserva identifica producto, bodega, cantidad, referencia del pedido y, opcionalmente, fecha de expiración.
+- **Disponible = existencias físicas − saldos pendientes de reservas activas no vencidas**, por producto y bodega. La reserva no altera las existencias físicas ni crea movimientos.
+- La reserva se controla a nivel **producto + bodega**, no por lote: el lote se valida por su propio saldo físico (HU6).
+- Una reserva no puede superar el disponible de ese producto en esa bodega.
+- Estados: **Activa → Consumida** (al registrar la salida asociada), **Activa → Liberada** (liberación total) o **Activa → Vencida** (al terminar el día de `expiresAt`).
+- Una **liberación parcial** mantiene la reserva en `Activa` y acumula `releasedQuantity`; el saldo pendiente es `quantity - releasedQuantity`.
+- Para consumir una reserva, la salida asociada debe cubrir el saldo pendiente; si despacha menos, primero se libera la diferencia.
+- Las reservas vencidas dejan de descontar disponible sin borrar el registro, para conservar la trazabilidad. La expiración se evalúa de forma perezosa al consultar u operar.
+- Las alertas de stock mínimo se evalúan sobre el **disponible** total, no sobre el físico (HU9).
+- No se puede eliminar un producto ni desactivar una bodega que tengan reservas activas o una toma abierta; tampoco eliminar un producto con líneas en una toma abierta.
+- Si una toma deja el físico por debajo de las reservas activas, el disponible puede quedar negativo: se muestra y se advierte, y se bloquean nuevas reservas y salidas hasta resolverlo (HU16).
+
+**Escenarios de Aceptación**:
+
+1. **Dado** un producto con 50 unidades físicas y sin reservas, **cuando** el usuario reserva 30, **entonces** el disponible pasa a 20 y las existencias físicas siguen en 50.
+2. **Dado** un disponible de 20, **cuando** el usuario intenta reservar 25, **entonces** el sistema rechaza la operación e indica el disponible actual.
+3. **Dada** una reserva activa de 30 unidades, **cuando** el usuario registra la salida asociada a esa referencia por 30 unidades, **entonces** la salida se permite y la reserva pasa a "Consumida".
+4. **Dada** una reserva activa de 30 unidades, **cuando** el usuario registra una salida sin referencia a esa reserva, **entonces** solo puede despachar hasta el disponible (20) y el exceso se rechaza.
+5. **Dada** una reserva activa, **cuando** el usuario la libera totalmente, **entonces** el disponible aumenta en la cantidad liberada y la reserva pasa a "Liberada" conservando su registro.
+6. **Dada** una reserva con fecha de expiración, **cuando** termina el día de `expiresAt` y el usuario consulta el stock, **entonces** la reserva aparece como "Vencida" y ya no descuenta disponible.
+7. **Dado** un producto con reservas activas, **cuando** el usuario intenta eliminarlo, **entonces** el sistema lo impide e indica que debe liberar o consumir las reservas primero.
+8. **Dado** un producto cuyo disponible llegó a cero pero conserva existencias físicas, **cuando** el usuario consulta el producto, **entonces** se muestra como "sin disponible", distinguiéndolo de "sin stock físico".
+9. **Dada** una bodega desactivada, **cuando** el usuario intenta reservar en ella, **entonces** el sistema lo rechaza e indica que la bodega no puede recibir movimientos (HU5).
+10. **Dada** una bodega con reservas activas, **cuando** el usuario intenta desactivarla, **entonces** el sistema lo impide e indica que debe liberar o consumir las reservas primero.
+11. **Dada** una reserva activa de 30 unidades, **cuando** el usuario libera 10, **entonces** el disponible sube en 10, la reserva sigue "Activa" con 20 pendientes y conserva el registro de lo liberado.
+12. **Dada** una reserva activa de 30 y una salida asociada de 20, **cuando** el usuario intenta registrarla sin liberar antes la diferencia, **entonces** el sistema lo rechaza e indica que debe liberar 10 o despachar las 30.
+
+---
+
+### Historia de Usuario 16 - Realizar una toma de inventario físico y registrar diferencias (Prioridad: P2)
+
+Como encargado de bodega, quiero comparar el stock del sistema con un conteo físico y registrar las diferencias como ajustes, para mantener el inventario alineado con la realidad y detectar pérdidas o errores de registro.
+
+**Por qué esta prioridad**: El MVP funciona sin conteos, pero sin ellos el stock se desvía con el tiempo y las alertas de stock mínimo pierden sentido. Se posterga porque requiere una pantalla adicional y depende de que los movimientos y los ajustes ya funcionen.
+
+**Prueba Independiente**: Un usuario inicia una toma para una bodega, ingresa las cantidades contadas, el sistema muestra la diferencia contra el saldo del sistema y, al confirmar, se genera un ajuste por cada diferencia que deja el físico igual a lo contado, sin liberar las reservas existentes.
+
+**Alcance y decisiones**:
+
+- La toma es **por bodega** y compara la cantidad contada contra las **existencias físicas**, nunca contra el disponible.
+- Si un producto tiene lotes registrados, el conteo se hace **por lote**, y el ajuste hereda ese lote; si además conserva saldo físico sin lote asociado, se agrega una línea **"sin lote"** para no descuadrar el saldo por lote.
+- Estados: **Borrador → En conteo → Confirmada**, con **Anulada** posible antes de confirmar. Solo puede existir **una toma abierta por bodega**.
+- El paso de **Borrador a En conteo** es obligatorio antes de confirmar; una toma **Confirmada** es inmutable y no puede anularse ni editarse.
+- El saldo del sistema que se muestra al iniciar es una **referencia**; la diferencia se calcula **contra el saldo vigente al confirmar**. No se congela la bodega, y así un movimiento ocurrido durante el conteo no produce un ajuste erróneo.
+- Al confirmar, se genera **un ajuste por cada diferencia**, con motivo y referencia a la toma mediante `countId`.
+- Las **reservas no se modifican** con la toma: son compromisos, no existencias. Si el físico contado queda por debajo de lo reservado, el disponible puede quedar negativo, se advierte y se bloquean nuevas reservas y salidas hasta resolverlo.
+- Un producto no contado no genera ajuste y conserva su saldo.
+- No se puede desactivar una bodega con una toma abierta ni eliminar un producto con líneas en una toma abierta.
+
+**Escenarios de Aceptación**:
+
+1. **Dado** un usuario en una bodega, **cuando** inicia una toma, **entonces** el sistema lista los productos con su saldo del sistema y un campo para la cantidad contada; si un producto tiene lotes, los lista por lote y agrega una línea "sin lote" cuando exista saldo no asociado.
+2. **Dado** el listado de la toma, **cuando** el usuario ingresa una cantidad distinta al saldo del sistema, **entonces** se muestra la diferencia (positiva o negativa) antes de confirmar.
+3. **Dado** el listado de la toma, **cuando** el usuario deja un producto sin contar, **entonces** no se genera ajuste y conserva su saldo.
+4. **Dada** una toma con diferencias, **cuando** el usuario confirma, **entonces** se genera un ajuste por cada diferencia, con motivo y referencia a la toma.
+5. **Dado** un ajuste generado por una toma, **cuando** el usuario consulta el kárdex del producto, **entonces** el ajuste aparece con su motivo y la referencia de la toma.
+6. **Dado** un producto con 30 unidades reservadas, **cuando** el conteo físico resulta menor a 30, **entonces** el sistema confirma el ajuste, advierte que las reservas activas superan el físico, no las libera automáticamente y muestra el disponible negativo y bloqueado.
+7. **Dada** una toma en estado "En conteo", **cuando** el usuario registra un movimiento en esa bodega, **entonces** el movimiento se permite y la diferencia se calcula contra el saldo actualizado al confirmar.
+8. **Dada** una bodega con una toma abierta, **cuando** el usuario intenta iniciar otra, **entonces** el sistema lo impide e indica que debe confirmar o anular la existente.
+9. **Dada** una cantidad contada negativa o no numérica, **cuando** el usuario intenta continuar, **entonces** el sistema la rechaza.
+10. **Dado** que la toma no se confirma, **cuando** el usuario la anula, **entonces** no se altera ningún stock.
+11. **Dada** una toma en "Borrador", **cuando** el usuario intenta confirmarla, **entonces** el sistema exige primero pasarla a "En conteo".
+12. **Dada** una toma "Confirmada", **cuando** el usuario intenta anularla o editar sus líneas, **entonces** el sistema no lo permite.
+13. **Dada** una bodega con una toma abierta, **cuando** el usuario intenta desactivarla, **entonces** el sistema lo impide e indica que debe confirmar o anular la toma; lo mismo aplica al intentar eliminar un producto con líneas en esa toma.
+
 ---
 
 ### Casos Límite
@@ -430,11 +531,18 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - ¿Qué ocurre cuando el panel se abre con cero entidades o cero documentos (valores estadísticos)?
 - ¿Qué ocurre cuando el color de acento configurado no es un valor de color válido?
 - ¿Cómo mantiene la barra lateral contraída las etiquetas de módulo accesibles en ventanas gráficas estrechas?
-- ¿Qué ocurre cuando un usuario registra una salida cuya cantidad supera el saldo disponible del producto en el almacén?
+- ¿Qué ocurre cuando un usuario registra una salida cuya cantidad supera el disponible (físico menos reservas activas) del producto en el almacén?
 - ¿Qué ocurre cuando un usuario intenta editar o eliminar un movimiento de inventario ya guardado?
 - ¿Qué ocurre cuando el lote indicado en un movimiento pertenece a un producto distinto al del movimiento?
 - ¿Qué ocurre cuando un usuario registra un movimiento con cantidad cero o negativa, o con una fecha inválida?
 - ¿Qué ocurre con el impacto de un movimiento en el stock cuando hay un ciclo de vida configurado y cuando no lo hay?
+- ¿Qué ocurre cuando un usuario intenta reservar más cantidad que el disponible del producto en la bodega?
+- ¿Qué ocurre cuando una reserva vence mientras el usuario está registrando la salida asociada?
+- ¿Qué ocurre cuando se confirma una toma de inventario en una bodega que recibió movimientos durante el conteo?
+- ¿Qué ocurre cuando el conteo físico de un producto es menor que su cantidad reservada?
+- ¿Qué ocurre cuando se libera solo una parte de una reserva y queda saldo pendiente?
+- ¿Qué ocurre cuando una toma confirmada deja el disponible negativo y luego se intenta reservar o despachar?
+- ¿Qué ocurre cuando un producto con lotes conserva saldo físico que no está asociado a ningún lote?
 
 ## Requisitos *(obligatorio)*
 
@@ -481,10 +589,21 @@ Como encargado de recepción, quiero registrar la devolución de un movimiento y
 - **FR-039**: En ventanas gráficas estrechas, la barra lateral DEBE contraerse a una columna de iconos manteniéndose operable.
 - **FR-040**: El sistema DEBE permitir registrar movimientos de inventario de tipo entrada, salida o ajuste que referencien un producto y un almacén existentes, con una cantidad entero positivo y una fecha de calendario válida. Los traslados se registran mediante su flujo propio (HU8) y generan dos movimientos vinculados.
 - **FR-041**: El sistema DEBE calcular y mostrar el saldo de un producto por almacén como la suma de sus movimientos, sin permitir editarlo directamente.
-- **FR-042**: El sistema DEBE rechazar una salida cuya cantidad deje el saldo del producto en el almacén por debajo de cero, indicando el saldo disponible.
+- **FR-042**: El sistema DEBE rechazar una salida cuya cantidad supere el disponible del producto en el almacén (existencias físicas menos los saldos pendientes de reservas activas no vencidas), indicando el disponible actual.
 - **FR-043**: Los movimientos guardados NO DEBEN ser editables ni eliminables; el sistema DEBE ofrecer registrar un movimiento de ajuste como corrección.
 - **FR-044**: El sistema DEBE permitir asociar opcionalmente un movimiento a un lote que pertenezca al mismo producto y al documento que lo origina.
 - **FR-045**: La pantalla de gestión de lotes DEBE abrirse desde la gestión del producto correspondiente; la barra lateral NO DEBE exponer un módulo independiente de Lotes.
+- **FR-046**: El sistema DEBE permitir reservar una cantidad de un producto en una bodega, con una referencia de pedido obligatoria y una fecha de expiración opcional.
+- **FR-047**: El sistema DEBE calcular y mostrar el disponible como las existencias físicas menos los saldos pendientes de reservas activas no vencidas, por producto y bodega, sin permitir editarlo directamente.
+- **FR-048**: El sistema DEBE rechazar una reserva cuya cantidad supere el disponible del producto en esa bodega, indicando el disponible actual.
+- **FR-049**: El sistema DEBE permitir consumir una reserva al registrar la salida asociada y liberarla total o parcialmente, dejando registro del cambio de estado.
+- **FR-050**: El sistema DEBE dejar de descontar el disponible de una reserva vencida sin eliminar su registro.
+- **FR-051**: El sistema NO DEBE permitir eliminar un producto que tenga reservas activas o líneas en una toma abierta, ni desactivar una bodega que tenga reservas activas o una toma abierta.
+- **FR-052**: El sistema DEBE permitir iniciar una toma de inventario por bodega, con una línea por producto y, si el producto tiene lotes, una línea por lote más una línea "sin lote" cuando exista saldo físico no asociado a lotes.
+- **FR-053**: El sistema DEBE calcular la diferencia entre lo contado y el saldo vigente al confirmar la toma, y generar un movimiento de ajuste por cada diferencia, con motivo y referencia a la toma mediante `countId`.
+- **FR-054**: La toma de inventario NO DEBE modificar las reservas activas y DEBE advertir cuando el físico contado sea menor que lo reservado, mostrando el disponible negativo y bloqueando nuevas reservas y salidas hasta resolverlo.
+- **FR-055**: El sistema NO DEBE permitir más de una toma abierta por bodega, DEBE exigir el paso `Borrador → En conteo` antes de confirmar y NO DEBE permitir modificar ni anular una toma `Confirmada`.
+- **FR-056**: El sistema DEBE rechazar un movimiento o una línea de traslado cuya cantidad supere el saldo físico del lote indicado.
 
 ### Requisitos de Extensibilidad *(obligaciones del módulo base)*
 
@@ -504,6 +623,8 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - **Movimiento de traslado**: Dos movimientos de inventario vinculados por el mismo documento de traslado —tramo de salida en el almacén de origen y tramo de entrada en el almacén de destino— que se guardan juntos; el saldo de cada almacén se calcula como la suma de sus movimientos, sin excepciones en el motor de saldos.
 - **Estado del movimiento**: Cada movimiento de inventario lleva un campo `status` con el estado actual de su ciclo de vida y la fecha del cambio (HU 12); sin ciclo de vida configurado, el estado permanece como texto libre.
 - **Devolución**: Registro propio de la devolución de un movimiento ya entregado o recibido, con motivo, cantidad en buen estado, cantidad dañada (merma) y ciclo de vida Solicitada → Aprobada → Recibida en bodega → Cerrada (Rechazada posible antes de Recibida), vinculado al movimiento original sin modificarlo (HU 14).
+- **Reserva de stock**: Compromiso de una cantidad de un producto en una bodega para un pedido pendiente, con referencia y expiración opcional; reduce el disponible pero no las existencias físicas ni genera movimientos (HU 15).
+- **Toma de inventario**: Conteo físico por bodega con ciclo Borrador → En conteo → Confirmada/Anulada; al confirmar genera un ajuste por diferencia, vinculado a la toma, sin alterar las reservas (HU 16).
 
 ## Criterios de Éxito *(obligatorio)*
 
@@ -519,6 +640,8 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - **SC-008**: Un desarrollador puede producir un módulo adaptado usando solo el archivo de configuración, con cero modificaciones en archivos fuente centrales.
 - **SC-009**: Cada pantalla presenta el mismo marco con marca, y los usuarios pueden identificar en qué módulo están de un vistazo.
 - **SC-010**: Las estadísticas de registros mostradas en el panel siempre coinciden con el número de entidades y documentos almacenados.
+- **SC-011**: Un usuario puede reservar stock y ver actualizado el disponible por producto y bodega en menos de 1 minuto, sin que las existencias físicas cambien.
+- **SC-012**: Tras confirmar una toma con diferencias, el saldo físico del sistema coincide con lo contado y cada ajuste generado es rastreable hasta su toma y su motivo.
 
 ## Suposiciones
 
@@ -538,4 +661,6 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - El contenido del usuario introducido por el usuario (nombres, descripciones, notas de documentos) DEBE sanitizarse antes de renderizarse en el DOM para prevenir ataques de inyección de scripts (XSS). El módulo base DEBE escapar HTML y atributos de eventos al mostrar datos de localStorage.
 - El MVP se distribuye con una configuración de Logística e Inventario cargada por defecto, de modo que la UI muestra Producto, Bodega y Movimiento; Entidad y Documento son los nombres internos del módulo base y solo aparecen en pantalla si una configuración los define así. Sin configuración, el módulo base retrocede a Entidad/Documento (FR-024). Ver Clarifications.
 - No hay autenticación ni control de acceso por rol en el MVP: los roles mencionados en las historias (usuario de negocio, encargado de bodega, operador de inventario, jefe de logística, encargado de recepción) son actores de los escenarios y todos comparten los mismos permisos. Ver Clarifications.
+- Las reservas y las tomas de inventario se gestionan en el mismo espacio de trabajo local (`localStorage`) que el resto del módulo.
+- El disponible se controla por producto y bodega; no se lleva disponibilidad separada por lote en esta versión.
 

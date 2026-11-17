@@ -18,7 +18,7 @@ Este sistema gestiona el **stock** de productos de una organización. Para ello,
 - **Entidad `Producto`** — representa el dato maestro del inventario (artículo o producto), reutilizando la estructura de la entidad base (`Entity`) con sus campos de identidad, contacto y clasificación, extendida según las necesidades del dominio de logística.
 - **Documento `Movimiento de Inventario`** — representa las transacciones que afectan el stock (entradas, salidas y ajustes), reutilizando la estructura del documento base (`Document`), con su vinculación obligatoria a un producto y su desglose de cantidades y montos; los traslados generan dos movimientos vinculados.
 
-El módulo incluye además **bodegas** (con código único y estado activo/inactivo), **lotes** con saldo y vencimiento (sugiere FEFO en las salidas), **documentos de soporte** (orden de compra y remisión) vinculados a los movimientos, **traslados** entre bodegas (dos movimientos vinculados con ciclo de estados) y **devoluciones** de salidas y traslados (motivo controlado, merma y ciclo Solicitada → Aprobada → Recibida en bodega → Cerrada).
+El módulo incluye además **bodegas** (con código único y estado activo/inactivo), **lotes** con saldo y vencimiento (sugiere FEFO en las salidas), **documentos de soporte** (orden de compra y remisión) vinculados a los movimientos, **traslados** entre bodegas (dos movimientos vinculados con ciclo de estados) y **devoluciones** de salidas y traslados (motivo controlado, merma y ciclo Solicitada → Aprobada → Recibida en bodega → Cerrada). La especificación incluye además **reservas de stock** (que descuentan el disponible sin alterar el físico) y **tomas de inventario físico** con ajuste por diferencia; ambas están desglosadas en `tasks.md` y pendientes de implementación.
 
 La aplicación se presenta como un espacio de trabajo ERP coherente:
 
@@ -32,17 +32,18 @@ La aplicación se presenta como un espacio de trabajo ERP coherente:
 2. **Bodegas** (`Bodegas`): alta con código único; se desactivan en lugar de eliminarse si ya tienen movimientos.
 3. **Movimientos** (`Movimientos`): entradas (aumentan stock), salidas (reducen stock y sugieren lote FEFO), ajustes con dirección; los movimientos son inmutables y sus estados siguen un ciclo de vida (`Pendiente → … → Entregado` para salidas; cancelados nunca afectan stock).
 4. **Lotes**: se crean desde el detalle del producto con saldo inicial en cero; el saldo se calcula a partir de sus movimientos y los vencidos se excluyen de las salidas.
-5. **Búsqueda** (`Buscar`): filtros combinados por texto (ignora tildes/mayúsculas), categoría, bodega y "stock bajo"; el stock bajo se marca con badge.
+5. **Búsqueda** (`Buscar`): filtros combinados por texto (ignora tildes/mayúsculas), categoría, bodega y "stock bajo"; el stock bajo se marca con badge y se evalúa sobre el disponible (físico menos reservas activas no vencidas).
 6. **Traslados** (botón *Gestionar traslados* en Movimientos): origen → destino con líneas por producto; la bodega de origen descuenta al despachar y la de destino abona al recibir; el stock total de la empresa no cambia, solo se redistribuye.
 7. **Devoluciones** (panel dentro de Movimientos): devolución parcial sobre salidas y traslados recibidos, con motivo controlado; la merma (cantidad dañada) no vuelve al stock y el stock solo sube al pasar a **Recibida en bodega**; el movimiento original queda intacto y muestra el total devuelto.
 
-Para más detalles sobre la estructura de datos (entidades, documentos, almacenes, lotes, partidas, movimientos de inventario, traslados y devoluciones), consulta [`specs/001-erp-base-module/data-model.md`](specs/001-erp-base-module/data-model.md).
+Para más detalles sobre la estructura de datos (entidades, documentos, almacenes, lotes, partidas, movimientos de inventario, traslados, devoluciones, reservas y tomas de inventario), consulta [`specs/001-erp-base-module/data-model.md`](specs/001-erp-base-module/data-model.md).
 
 ## Estado Actual y Próximos Pasos
 
-1. **Implementación completa de las 14 historias de usuario** — las fases de `specs/001-erp-base-module/tasks.md` (T001–T090) están ejecutadas: producto, gestión, panel, bodegas, movimientos, lotes, stock bajo, documentos, traslados, búsqueda y devoluciones.
-2. **Suite de pruebas verde** — pruebas unitarias e integración (incluye casos XSS, ciclos de vida, redistribución de stock y rendimiento de búsqueda con 500 productos < 200 ms p95).
-3. **Siguientes pasos**: pulido final (accesibilidad, revisión XSS, documentación y validación manual del flujo quickstart).
+1. **Implementación completa del MVP (14 historias de usuario)** — las fases de `specs/001-erp-base-module/tasks.md` (T001–T090) están ejecutadas: producto, gestión, panel, bodegas, movimientos, lotes, stock bajo, documentos, traslados, búsqueda y devoluciones.
+2. **Especificación ampliada (US 15–16)** — reservas de stock y toma de inventario físico están especificadas, con sus requisitos (FR-046 a FR-056) y tareas (T091–T105); su implementación está pendiente.
+3. **Suite de pruebas verde** — pruebas unitarias e integración (incluye casos XSS, ciclos de vida, redistribución de stock y rendimiento de búsqueda con 500 productos < 200 ms p95).
+4. **Siguientes pasos**: implementar US 15–16, pulido final (accesibilidad, revisión XSS, documentación y validación manual del flujo quickstart).
 
 ## Instalación
 
@@ -86,14 +87,18 @@ Toda la personalización se concentra en un solo lugar: el objeto `userConfig` e
 - `moduleName` — nombre visible que se muestra en la barra superior, el panel y el título del documento; también se deriva de él el monograma del logotipo.
 - `labels` — renombra los términos Entidad/Documento en todas las pantallas, incluidos los botones de la barra lateral, las acciones rápidas, los formularios y los mensajes. Los artículos y las concordancias del español (el/la, seleccionado/a) se derivan de la primera palabra de cada término configurado.
 - `customFields` — declara campos adicionales por tipo de registro con `target` (`entity` o `document`), `key`, `label`, `type` (`text`, `number`, `date` o `select`), `required` opcional, y `options` para los select. Las claves no deben coincidir con nombres de campos base (consulta `specs/001-erp-base-module/data-model.md`). Los valores persisten junto a los registros y aparecen en los resultados de búsqueda (p. ej., categoría, unidad de medida o cualquier atributo del dominio).
-- `statusLifecycle` — restringe los estados por tipo de registro (`documents`, `movements` y `returns`) a una lista configurada de `statuses` con las `transitions` permitidas entre ellos. Incluye los ciclos predeterminados de orden de compra, traslado, salida y devolución; los movimientos sin ciclo (entradas y ajustes) se efectivizan de inmediato. Si no se define, el estado permanece como un campo de texto libre.
+- `statusLifecycle` — restringe los estados por tipo de registro (`references`, `documents`, `movements` y `returns`) a una lista configurada de `statuses` con las `transitions` permitidas entre ellos. `references` cubre los ciclos de documentos referenciados por movimientos y traslados. Incluye los ciclos predeterminados de orden de compra, traslado, salida y devolución; los movimientos sin ciclo (entradas y ajustes) se efectivizan de inmediato. Si no se define, el estado permanece como un campo de texto libre.
 - `theme.accentColor` — un color hexadecimal (por ejemplo, `"#0f62fe"`) aplicado en todo el shell como resaltado y para los controles primarios. Los valores no válidos recurren al valor predeterminado.
 
 Si la configuración es inválida (tipos desconocidos, claves incorrectas, transiciones que referencian estados desconocidos, colores de acento no hexadecimales), la aplicación muestra los problemas en una banda de advertencia y recurre a los valores predeterminados en lugar de fallar.
 
+## Uso de IA
+
+El registro de modelo, fecha y secuencia de prompts utilizados se documenta en [`anexo-uso-ia.md`](anexo-uso-ia.md).
+
 ## Notas
 
-- Los datos se guardan en `localStorage` bajo las claves con prefijo `erp_base_module:` (`entities`, `documents`, `warehouses`, `lots`, `movements`, `transfers` y `returns`).
-- Al eliminar una entidad (producto) que no tiene movimientos, sus documentos y lotes también se eliminan (borrado en cascada); un producto con movimientos no se puede eliminar.
+- Los datos se guardan en `localStorage` bajo las claves con prefijo `erp_base_module:` (`entities`, `documents`, `warehouses`, `lots`, `movements`, `transfers`, `returns`, `reservations` y `stockCounts`).
+- Al eliminar una entidad (producto) que no tiene movimientos, reservas activas ni líneas en una toma abierta, sus documentos y lotes también se eliminan (borrado en cascada); en caso contrario no se puede eliminar.
 - Los movimientos no se editan ni se eliminan: las correcciones se registran como ajustes o devoluciones.
 - Este proyecto usa intencionalmente HTML, CSS y JavaScript puro (vanilla) por simplicidad.
