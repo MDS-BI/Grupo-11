@@ -33,13 +33,20 @@ La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas
 - Verifique que el stock de una devolución solo cambia al llevarla a `Recibida en bodega` y que el movimiento original conserva su cantidad.
 - Verifique que los estados finales (`Cerrada`, `Rechazada`, `Cancelado`) no ofrecen más transiciones.
 
+## Flujos previstos: reservas y tomas (US 15–16)
+
+Estas funciones están especificadas pero **aún no implementadas**; se validarán cuando se ejecuten las tareas T091–T105:
+
+- **Reservas (US 15)**: desde Movimientos, reserve unidades de un producto en una bodega con una referencia de pedido; el **disponible** baja y el físico no cambia. Consuma la reserva al despachar (cubriendo el saldo pendiente) o libérela total o parcialmente; una liberación parcial mantiene la reserva activa. Las vencidas dejan de descontar disponible al terminar el día de `expiresAt`, sin borrarse.
+- **Tomas de inventario (US 16)**: desde Bodegas, inicie una toma, pásela a **En conteo**, cuente el físico (por lote si el producto tiene lotes, más una línea "sin lote" si hay saldo no asociado) y confirme; se genera un ajuste por cada diferencia contra el saldo vigente al confirmar, con motivo y referencia a la toma, sin tocar las reservas. Solo puede haber una toma abierta por bodega y una toma confirmada no se modifica ni se anula. Si el físico queda bajo lo reservado, se advierte y el disponible negativo bloquea nuevas reservas y salidas.
+
 ## Extender el Módulo Base
 
 Los módulos ERP personalizados adaptan la base mediante un único archivo de configuración (`src/module-config.js`) en lugar de editar el código central:
 
 1. Establezca el nombre del módulo y los mapeos de términos (p. ej. Entidad → Cliente, Documento → Pedido de Venta); cada pantalla se reetiqueta, incluida la barra lateral y el logotipo.
 2. Declare campos personalizados por tipo de registro (texto, número, fecha, selección) — aparecen automáticamente en formularios, listas, validación y búsqueda.
-3. Defina el ciclo de vida de estados por tipo de registro (`documents`, `movements`, `returns`) y las transiciones permitidas (p. ej. cotización → pedido → facturado); los movimientos sin ciclo se efectivizan de inmediato.
+3. Defina el ciclo de vida de estados por tipo de registro (`references`, `documents`, `movements`, `returns`) y las transiciones permitidas (p. ej. cotización → pedido → facturado); los movimientos sin ciclo se efectivizan de inmediato.
 4. Opcionalmente establezca `theme.accentColor` para remarcar los resaltados y controles principales de todo el espacio de trabajo.
 5. Añada reglas de validación específicas del módulo junto a las reglas base donde sea necesario.
 

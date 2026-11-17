@@ -1,3 +1,10 @@
+%% MER — Módulo de Logística e Inventario (Grupo 11)
+%% Leyenda:
+%%   (objetivo) = tabla del modelo de dominio completo que NO se implementa en la v1.
+%%   inventory_stock es una PROYECCIÓN derivada de inventory_transactions menos reservas activas;
+%%   no se edita a mano. El saldo siempre se calcula sumando movimientos.
+%%   Los movimientos de traslado usan transfer_id + transfer_leg ('origen' | 'destino').
+
 erDiagram
     companies {
         int company_id PK
@@ -10,9 +17,15 @@ erDiagram
     }
     purchase_orders {
         int purchase_order_id PK
+        varchar folio
+        varchar status
+        date order_date
     }
     sales_orders {
         int sales_order_id PK
+        varchar folio
+        varchar status
+        date order_date
     }
     product_categories {
         int product_category_id PK
@@ -31,6 +44,7 @@ erDiagram
         varchar sku
         varchar product_name
         varchar product_type
+        int min_stock
         decimal standard_cost
         boolean is_active
     }
@@ -38,7 +52,9 @@ erDiagram
         int warehouse_id PK
         int company_id FK
         int address_id FK
+        varchar warehouse_code
         varchar warehouse_name
+        boolean is_active
     }
     warehouse_locations {
         int location_id PK
@@ -47,6 +63,13 @@ erDiagram
         varchar aisle
         varchar rack
         varchar bin
+    }
+    product_lots {
+        int lot_id PK
+        int product_id FK
+        varchar lot_number
+        date manufactured_at
+        date expires_at
     }
     inventory_stock {
         int stock_id PK
@@ -61,22 +84,35 @@ erDiagram
         int product_id FK
         int warehouse_id FK
         int location_id FK
+        int lot_id FK
         varchar transaction_type
         decimal quantity
         decimal unit_cost
         varchar reason
+        varchar status
+        datetime status_changed_at
         int created_by FK
         datetime transaction_date
-        varchar reference_module
-        int reference_id
+        int purchase_order_id FK
+        int shipment_id FK
+        int transfer_id FK
+        varchar transfer_leg
+        int count_id FK
+        int reservation_id FK
+        int return_id FK
     }
-    reorder_rules {
-        int reorder_rule_id PK
+    stock_reservations {
+        int reservation_id PK
         int product_id FK
         int warehouse_id FK
-        decimal min_quantity
-        decimal max_quantity
-        int lead_time_days
+        decimal quantity
+        decimal released_quantity
+        varchar reference
+        varchar status
+        date expires_at
+        int movement_id FK
+        datetime created_at
+        datetime updated_at
     }
     stock_transfers {
         int transfer_id PK
@@ -84,23 +120,62 @@ erDiagram
         int to_warehouse_id FK
         date transfer_date
         varchar status
+        int created_by FK
+        datetime created_at
+        datetime dispatched_at
+        datetime received_at
     }
     stock_transfer_lines {
         int transfer_line_id PK
         int transfer_id FK
         int product_id FK
+        int lot_id FK
         decimal quantity
+    }
+    stock_counts {
+        int count_id PK
+        varchar reference
+        int warehouse_id FK
+        varchar status
+        varchar notes
+        date started_at
+        date confirmed_at
+        int created_by FK
+    }
+    stock_count_lines {
+        int count_line_id PK
+        int count_id FK
+        int product_id FK
+        int lot_id FK
+        decimal system_quantity
+        decimal counted_quantity
+        int adjustment_transaction_id FK
+    }
+    stock_returns {
+        int return_id PK
+        varchar return_kind
+        int movement_id FK
+        int transfer_id FK
+        int product_id FK
+        int warehouse_id FK
+        varchar reason
+        decimal quantity_good
+        decimal quantity_damaged
+        varchar status
+        datetime created_at
     }
     goods_receipts {
         int goods_receipt_id PK
         int purchase_order_id FK
         int warehouse_id FK
         date receipt_date
+        varchar status
     }
     goods_receipt_lines {
         int goods_receipt_line_id PK
         int goods_receipt_id FK
         int product_id FK
+        int lot_id FK
         decimal quantity_received
     }
     carriers {
@@ -130,25 +205,43 @@ erDiagram
     companies ||--o{ warehouses : posee
     addresses ||--o{ warehouses : ubica
     warehouses ||--o{ warehouse_locations : contiene
+    products ||--o{ product_lots : "se agrupa en"
     products ||--o{ inventory_stock : "tiene saldo"
     warehouses ||--o{ inventory_stock : almacena
     warehouse_locations ||--o{ inventory_stock : guarda
     products ||--o{ inventory_transactions : "se mueve"
     warehouses ||--o{ inventory_transactions : registra
     warehouse_locations ||--o{ inventory_transactions : afecta
+    product_lots ||--o{ inventory_transactions : "trazado por"
     employees ||--o{ inventory_transactions : registra
-    products ||--o{ reorder_rules : tiene
-    warehouses ||--o{ reorder_rules : aplica
+    products ||--o{ stock_reservations : reserva
+    warehouses ||--o{ stock_reservations : "reserva en"
+    stock_reservations ||--o{ inventory_transactions : consume
     warehouses ||--o{ stock_transfers : origen
     warehouses ||--o{ stock_transfers : destino
     stock_transfers ||--o{ stock_transfer_lines : incluye
     products ||--o{ stock_transfer_lines : transferido
+    product_lots ||--o{ stock_transfer_lines : "lote transferido"
+    stock_transfers ||--o{ inventory_transactions : "genera piernas"
+    warehouses ||--o{ stock_counts : cuenta
+    stock_counts ||--o{ stock_count_lines : incluye
+    products ||--o{ stock_count_lines : contado
+    product_lots ||--o{ stock_count_lines : "lote contado"
+    stock_counts ||--o{ inventory_transactions : "genera ajustes"
+    products ||--o{ stock_returns : devuelve
+    warehouses ||--o{ stock_returns : "recibe en"
+    stock_returns ||--o{ inventory_transactions : "genera ajustes"
+    inventory_transactions ||--o{ stock_returns : "movimiento original"
+    stock_transfers ||--o{ stock_returns : "traslado original"
     purchase_orders ||--o{ goods_receipts : "se recibe en"
     warehouses ||--o{ goods_receipts : recibe
     goods_receipts ||--o{ goods_receipt_lines : incluye
     products ||--o{ goods_receipt_lines : recibido
+    product_lots ||--o{ goods_receipt_lines : "lote recibido"
+    purchase_orders ||--o{ inventory_transactions : "origina"
     sales_orders ||--o{ shipments : "se despacha en"
     warehouses ||--o{ shipments : despacha
     carriers ||--o{ shipments : transporta
     shipments ||--o{ shipment_lines : incluye
     products ||--o{ shipment_lines : despachado
+    shipments ||--o{ inventory_transactions : "origina"

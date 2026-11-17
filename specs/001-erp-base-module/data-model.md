@@ -19,7 +19,7 @@ Representa el dato maestro central del módulo (p. ej., cliente, proveedor, art�
 | targetDate | string | Fecha objetivo opcional en formato YYYY-MM-DD; los módulos personalizados definen su significado (p. ej., fecha de vencimiento, fecha de revisión) | Opcional, debe ser una fecha de calendario válida si se proporciona |
 | creditLimit | number | Límite de crédito extendido a la entidad en la moneda configurada | Opcional, debe ser un número no negativo |
 | paymentTerms | string | Condiciones de pago acordadas (p. ej., contado, neto 30) | Opcional |
-| stockMin | number | Stock mínimo por producto para marcar "stock bajo" cuando el saldo total queda por debajo (HU 9) | Opcional; debe ser un entero no negativo; vacío = sin mínimo |
+| stockMin | number | Stock mínimo por producto para marcar "stock bajo" cuando el disponible total (físico menos reservas activas) queda por debajo (HU 9) | Opcional; debe ser un entero no negativo; vacío = sin mínimo |
 | createdAt | string | Marca de tiempo de cuándo se creó la entidad | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización de la entidad | Obligatorio |
 
@@ -57,7 +57,7 @@ Objeto de configuración cargado al arrancar que adapta el módulo base en un m�
 | moduleName | string | Nombre visible del módulo adaptado | Obligatorio, no vacío |
 | labels | object | Mapeos de términos como `{ entity: "Cliente", entities: "Clientes", document: "Pedido de Venta", documents: "Pedidos de Venta" }` | Opcional; retrocede a Entidad/Documento |
 | customFields | array | Definiciones de campos por tipo de registro: `{ target: "entity"\|"document", key, label, type: "text"\|"number"\|"date"\|"select", required: boolean, options?: string[] }` | Opcional; las claves NO DEBEN chocar con nombres de campos base |
-| statusLifecycle | object | Estados ordenados y transiciones permitidas para documentos, p. ej., `{ statuses: ["cotización", "pedido", "facturado"], transitions: { cotización: ["pedido"], pedido: ["facturado"], facturado: [] } }` | Opcional |
+| statusLifecycle | object | Estados ordenados y transiciones permitidas por tipo de registro: `references`, `documents`, `movements` y `returns` (p. ej., `{ documents: { statuses: ["cotización", "pedido", "facturado"], transitions: { cotización: ["pedido"], pedido: ["facturado"], facturado: [] } } }`). `references` cubre los ciclos de documentos referenciados por movimientos y traslados. Incluye los ciclos predeterminados de orden de compra, salida, traslado y devolución; las tomas de inventario usan un ciclo fijo y no configurable | Opcional; si falta, el estado permanece como texto libre |
 | theme | object | Opciones de marca, p. ej., `{ accentColor: "#0f62fe" }`; aplicado como propiedad personalizada de CSS en todo el marco del espacio de trabajo | Opcional; accentColor debe ser un color CSS válido o retrocede al predeterminado |
 
 ## Entidad: Warehouse (almacén)
@@ -109,7 +109,7 @@ Representa una línea de un documento con el artículo, la cantidad y el precio,
 
 ## Entidad: StockMovement (movimiento de inventario)
 
-Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un artículo se obtiene sumando sus movimientos y no se edita directamente.
+Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un artículo se obtiene sumando sus movimientos y no se edita directamente. Los movimientos de tipo `traslado` solo los crea el sistema, como par de piernas vinculadas a un traslado (ver `Transfer`).
 
 | Campo | Tipo | Descripción | Restricciones |
 |---|---|---|---|
@@ -123,6 +123,9 @@ Representa una entrada, salida, traslado o ajuste de inventario. El saldo de un 
 | transferId | string | Clave del traslado al que pertenece esta pierna (solo type=traslado) | Obligatorio cuando type=traslado; debe referenciar el id de un traslado existente |
 | leg | string | Pierna del traslado: `origin` o `destination` | Obligatorio cuando type=traslado |
 | returnId | string | Devolución que originó este ajuste (solo ajustes generados por una devolución) | Opcional; debe referenciar el id de una devolución existente |
+| reservationId | string | Reserva que consume este movimiento (solo salidas que consumen una reserva) | Opcional; debe referenciar una reserva `Activa` del mismo artículo y bodega |
+| countId | string | Toma de inventario que originó este ajuste | Opcional; obligatorio cuando el ajuste lo genera una toma confirmada |
+| reason | string | Motivo del ajuste | Obligatorio en ajustes generados por una toma o una devolución; en el resto es opcional |
 | quantity | number | Cantidad movida | Obligatorio, debe ser un entero positivo (el signo lo determina `direction`) |
 | unitCost | number | Costo unitario del movimiento | Opcional, debe ser un número no negativo |
 | movementDate | string | Fecha del movimiento en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
@@ -171,12 +174,60 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 | createdAt | string | Marca de tiempo de cuándo se creó la devolución | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización | Opcional |
 
+## Entidad: StockReservation (reserva de stock)
+
+Representa el compromiso de una cantidad de un artículo en una bodega para un pedido pendiente. No crea movimientos ni altera el saldo físico: reduce el **disponible**. El saldo pendiente de una reserva es `quantity - releasedQuantity`.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único de la reserva | Obligatorio, generado automáticamente |
+| entity_id | string | Artículo reservado | Obligatorio; debe referenciar una entidad existente |
+| warehouse_id | string | Bodega donde se reserva | Obligatorio; debe referenciar un almacén existente y activo |
+| quantity | number | Cantidad reservada original | Obligatorio, entero positivo |
+| reference | string | Referencia del pedido que origina la reserva | Obligatorio, no vacío |
+| status | string | Estado: `Activa`, `Consumida`, `Liberada` o `Vencida` | Obligatorio; inicia en `Activa`; una liberación parcial mantiene `Activa` |
+| expiresAt | string | Fecha de expiración | Opcional, fecha válida `YYYY-MM-DD`; vence al terminar ese día en hora local |
+| movementId | string | Movimiento de salida que consumió la reserva | Opcional; obligatorio cuando `status = Consumida` |
+| releasedQuantity | number | Cantidad liberada acumulada | Opcional, entero no negativo, no mayor que `quantity` |
+| createdAt | string | Marca de tiempo de creación | Obligatorio |
+| updatedAt | string | Marca de tiempo de la última actualización | Opcional |
+
+## Entidad: StockCount (toma de inventario)
+
+Representa un conteo físico de una bodega. Al confirmarse genera movimientos `ajuste` por cada diferencia y queda inmutable.
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único de la toma | Obligatorio, generado automáticamente |
+| reference | string | Referencia visible de la toma (p. ej., TOM-0001) | Obligatorio, generado automáticamente, único |
+| warehouse_id | string | Bodega contada | Obligatorio; debe referenciar un almacén existente |
+| status | string | Estado: `Borrador`, `En conteo`, `Confirmada` o `Anulada` | Obligatorio; ciclo fijo, no configurable; exige el paso `Borrador → En conteo` antes de confirmar |
+| notes | string | Observaciones | Opcional |
+| startedAt | string | Fecha de inicio del conteo | Obligatorio |
+| confirmedAt | string | Fecha de confirmación | Opcional; obligatorio cuando `status = Confirmada` |
+| createdAt | string | Marca de tiempo de creación | Obligatorio |
+
+Una toma en estado `Confirmada` es inmutable: no se edita ni se anula. La anulación solo es posible en `Borrador` o `En conteo`.
+
+## Entidad: StockCountLine (línea de toma)
+
+| Campo | Tipo | Descripción | Restricciones |
+|---|---|---|---|
+| id | string | Identificador único de la línea | Obligatorio, generado automáticamente |
+| count_id | string | Toma a la que pertenece | Obligatorio; debe referenciar una toma existente |
+| entity_id | string | Artículo contado | Obligatorio; debe referenciar una entidad existente |
+| lot_id | string | Lote contado | Obligatorio si el artículo tiene lotes registrados y el saldo está asociado a un lote; se deja vacío en la línea "sin lote" para saldo físico no asociado; debe pertenecer al mismo artículo |
+| systemQuantity | number | Saldo del sistema al iniciar la línea (referencia) | Obligatorio, número no negativo |
+| countedQuantity | number | Cantidad contada físicamente | Opcional; entero no negativo; si está vacío, la línea no genera ajuste |
+| difference | number | `countedQuantity - saldo vigente al confirmar` | Derivado, no se almacena |
+| adjustmentMovementId | string | Movimiento de ajuste generado por la línea | Opcional; obligatorio cuando la toma se confirma y la diferencia no es cero |
+
 ## Reglas de ModuleConfig
 
 - La configuración se carga una vez al arrancar y se aplica en todas las pantallas.
 - Cuando la configuración está ausente, se aplican los valores predeterminados integrados del módulo Logística e Inventario: etiquetas Productos/Movimientos/Bodegas, sin campos personalizados, estado de texto libre, color de acento predeterminado.
 - Los valores inválidos o conflictivos deben informarse con claridad en lugar de fallar silenciosamente.
-- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `taxId`, `email`, `phone`, `address`, `category`, `description`, `targetDate`, `creditLimit`, `paymentTerms`, `stockMin`, `series`, `type`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`, `statusChangedAt`, `warehouse_id`, `movementDate`, `direction`, `transferId`, `leg`, `lot_id`, `reason`, `quantity_good`, `quantity_damaged`).
+- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `taxId`, `email`, `phone`, `address`, `category`, `description`, `targetDate`, `creditLimit`, `paymentTerms`, `stockMin`, `series`, `type`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`, `statusChangedAt`, `warehouse_id`, `movementDate`, `direction`, `transferId`, `leg`, `lot_id`, `reason`, `quantity_good`, `quantity_damaged`, `reservationId`, `countId`, `movementId`, `reference`, `expiresAt`, `releasedQuantity`, `count_id`, `systemQuantity`, `countedQuantity`, `startedAt`, `confirmedAt`, `adjustmentMovementId`).
 - Los valores de campos personalizados se persisten junto a los campos base sin cambios de esquema en el almacenamiento.
 - Un ciclo de vida configurado reemplaza la entrada de estado de texto libre; sin uno, el estado permanece como texto libre.
 
@@ -191,6 +242,7 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 - El límite de crédito es opcional pero, cuando está presente, debe ser un número no negativo.
 - La fecha objetivo es opcional pero, cuando está presente, debe ser una fecha de calendario válida en formato YYYY-MM-DD.
 - Un entity_id debe generarse automáticamente y debe ser único entre todas las entidades.
+- El stock mínimo es opcional; cuando está presente debe ser un entero no negativo y se compara con el disponible total del producto (físico menos los saldos pendientes de reservas activas), no con el saldo de una bodega concreta.
 
 ### Documento
 
@@ -223,7 +275,8 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 
 - Un movimiento debe referenciar un artículo y un almacén existentes.
 - El tipo debe ser uno de: entrada, salida, traslado o ajuste.
-- Una salida no puede dejar el saldo del artículo en el almacén por debajo de cero.
+- Una salida no puede dejar el **disponible** del artículo en el almacén por debajo de cero, salvo que consuma una reserva activa por su saldo pendiente; en ese caso la reserva deja de descontar ese saldo. El disponible es el saldo físico menos los saldos pendientes de reservas activas no vencidas de ese artículo en esa bodega.
+- Si se indica un lote, la cantidad no puede superar el saldo físico de ese lote.
 - Los movimientos no se editan ni se eliminan; una corrección se registra con un movimiento de ajuste.
 - Cuando hay un ciclo de vida configurado, el `status` de un movimiento solo puede cambiar mediante transiciones permitidas y el cambio registra su fecha en `statusChangedAt`.
 - Un movimiento con `status` `Cancelado` (o anulado) no altera el saldo, aunque sea visible en el historial.
@@ -233,7 +286,7 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 
 - El traslado debe tener origen y destino distintos; ambas bodegas deben existir y estar activas al crearlo y al despacharlo, y la de destino debe seguir activa al recibirlo.
 - Cada línea debe indicar un artículo existente y una cantidad entero positiva; no se permiten líneas duplicadas por artículo.
-- El saldo disponible en la bodega de origen debe ser suficiente al crear y al despachar el traslado.
+- El disponible en la bodega de origen (saldo físico menos reservas activas) debe ser suficiente al crear y al despachar el traslado; las reservas activas no se trasladan.
 - El efecto en el saldo lo gobierna el ciclo de vida (HU 12): la pierna de origen descuenta al despachar y la pierna de destino suma al recibir; cancelar un traslado en `Solicitado` no altera saldo.
 
 ### Devolución
@@ -243,12 +296,34 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 - La merma (`quantity_damaged`) nunca altera el stock; solo `quantity_good` genera ajustes al recibir.
 - Los ajustes generados son movimientos `ajuste` inmutables que apuntan a la devolución mediante `returnId` y solo se crean una vez.
 
+### Reserva de stock
+
+- Una reserva debe referenciar un artículo y una bodega existentes; la bodega debe estar activa.
+- La cantidad debe ser un entero positivo.
+- La suma de los saldos pendientes (`quantity - releasedQuantity`) de reservas activas y no vencidas de un artículo en una bodega no puede superar sus existencias físicas.
+- Una liberación parcial mantiene la reserva en `Activa` y acumula `releasedQuantity`; solo una liberación total la pasa a `Liberada`.
+- Una reserva `Consumida` debe referenciar el movimiento de salida que la consumió, y esa salida debe cubrir el saldo pendiente; si despacha menos, la diferencia se libera antes.
+- Una reserva vencida deja de contar para el disponible pero conserva su registro y su estado histórico. La expiración se evalúa al terminar el día de `expiresAt`, de forma perezosa al consultar u operar.
+- Si el físico queda por debajo de las reservas activas, el disponible puede ser negativo; se muestra, se advierte y se bloquean nuevas reservas y salidas hasta resolverlo.
+- Un artículo con reservas activas o líneas en una toma abierta no puede eliminarse, y una bodega con reservas activas o una toma abierta no puede desactivarse.
+
+### Toma de inventario
+
+- Una toma debe referenciar una bodega existente y tener al menos una línea.
+- Solo puede existir una toma en estado `Borrador` o `En conteo` por bodega.
+- El avance exige `Borrador → En conteo`; solo se puede confirmar una toma en estado `En conteo`. Una toma `Confirmada` es inmutable y no puede anularse ni editarse.
+- `systemQuantity` es una referencia capturada al iniciar la línea; la diferencia se calcula contra el saldo vigente al confirmar.
+- Las líneas se generan por producto, por lote cuando el artículo tiene lotes y por una línea "sin lote" cuando existe saldo físico no asociado a lotes.
+- Al confirmar, cada línea con `countedQuantity` informada y diferencia distinta de cero genera un movimiento `ajuste` inmutable, con motivo, `countId` y `direction` según el signo de la diferencia.
+- La toma no modifica el estado de las reservas; si las reservas activas superan el físico contado, se advierte, se muestra el disponible negativo y se bloquean nuevas reservas y salidas hasta resolverlo.
+- Una bodega con una toma abierta no puede desactivarse, y un producto con líneas en una toma abierta no puede eliminarse.
+
 ## Relaciones
 
 - Cada entidad se almacena independientemente y aparece como una única fila en la lista de entidades.
 - Cada entidad tiene un entity_id usado para conectarse a sus documentos.
 - Cada documento pertenece exactamente a una entidad, vinculada por el entity_id de la entidad.
-- Cuando se elimina una entidad, todos los documentos que referencian su entity_id también se eliminan.
+- Cuando se elimina una entidad, todos los documentos y lotes que la referencian también se eliminan; la eliminación se bloquea si tiene movimientos, reservas activas o líneas en una toma abierta.
 - Las operaciones de búsqueda se realizan sobre los registros de entidad almacenados, incluyendo identidad fiscal, contacto y condiciones comerciales.
 - Cada partida pertenece exactamente a un documento y a un artículo (una entidad).
 - Cuando se elimina un documento, sus partidas también se eliminan.
@@ -258,6 +333,11 @@ Representa la devolución de cantidad despachada hacia la bodega de origen, vinc
 - Una entidad que tenga movimientos de inventario no puede eliminarse, para conservar el historial del inventario.
 - Un traslado encabeza dos movimientos por línea (origen y destino) que comparten `transferId` y reflejan el mismo estado que el encabezado.
 - Una devolución referencia exactamente una salida o un traslado y, al recibir, genera los movimientos `ajuste` que restauran stock en la bodega de origen.
+- Una reserva referencia exactamente un artículo y una bodega; no crea movimientos.
+- El disponible de un artículo por bodega es su saldo físico menos la suma de los saldos pendientes de sus reservas activas y no vencidas; puede ser negativo si una toma deja el físico por debajo de lo reservado.
+- Una toma de inventario referencia exactamente una bodega y contiene una o más líneas por artículo, por lote cuando corresponda y una línea "sin lote" para saldo físico no asociado.
+- Al confirmarse, cada línea de la toma con diferencia distinta de cero genera un movimiento `ajuste` con motivo y `countId` que referencia la toma y es inmutable.
+- El ajuste de una devolución o de una toma modifica el físico en la dirección de la diferencia, y con ello el disponible, sin alterar las reservas.
 
 ## Notas de Extensibilidad
 
