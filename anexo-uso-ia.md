@@ -4,8 +4,8 @@
 **Curso**: Modelación de Sistemas 2026-2 — Universidad de Concepción
 **Equipo**: Catalina Cifuentes Mosqueira · Florencia Casas Caro · Martín Gonzales Salas · Estefano Gutierres San Martin · Gonzalo Romero Aravena · Juan Pablo Valladares Ruiz
 **Herramienta**: OpenCode (agente de código en terminal / VS Code)
-**Modelo**: Big Pickle (`opencode/big-pickle`)
-**Última actualización**: 2026-11-16
+**Modelo**: Big Pickle (`opencode/big-pickle`) — sesiones 1 y 4–6 · mimo-v2.6-flash-free (`opencode/mimo-v2.6-flash-free`) — sesiones 2–3
+**Última actualización**: 2026-11-17
 
 ---
 
@@ -40,34 +40,49 @@ Se declara además que:
 | 9 | 22/10 | Completitud del README | "¿Conviene incorporar algo más a la visión?" | Secciones de alcance y estructura |
 | 10 | 22/10 | Aclaraciones de autoría | "El segundo párrafo es generado; 'arquitecto' lo usa el profesor" | Ajuste de roles y trazabilidad |
 
-### Sesión 2 — 2026-11-02 (revisión de especificación)
+### Sesión 2 — 2026-10-29 (conversión del MER)
 
 | # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
 |---|---|---|---|---|
-| 11 | 02/11 | Revisión del repositorio | "Revisa el repo Grupo-11 y las US7 y US8; ¿qué historias conviene incorporar?" | Reemplazo de historias genéricas |
-| 12 | 02/11 | Cobertura del traslado | "¿El traslado no está cubierto por la US4?" | Detección de ambigüedad de alcance |
-| 13 | 02/11 | Cobertura del kárdex | "¿US4 y US6 no aluden ya a un kárdex?" | Distinción dato vs. funcionalidad |
-| 14 | 02/11 | Numeración | "¿Conviene reordenar la numeración de las US?" | Criterio de renumeración |
-| 15 | 02/11 | Historia de traslado | "Idea la US8 sobre traslado entre bodegas" | US8 de traslado (incorporada al repo) |
-| 16 | 02/11 | Uso de la herramienta | "¿Cómo continúo esta conversación desde la terminal de VS Code?" | Sesiones de OpenCode |
+| 11 | 29/10 | Conversión del MER a código | "Quiero que el archivo MER.svg lo pases a código. Quiero que crees un archivo tipo mermaid. Puedes?" | `MER.mmd` creado con 20 tablas y 28 relaciones, sin tocar el SVG (commit `6d02874`) |
 
-### Sesión 3 — 2026-11-03 (nuevas historias y modelo de datos)
+### Sesión 3 — 2026-11-01/02 (historias de usuario 9 y 10)
 
 | # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
 |---|---|---|---|---|
-| 17 | 03/11 | Nuevas historias | "Incorporar toma de inventario y reserva de stock; acotar US4; revisar el MER" | Propuesta de US de reservas y de toma |
-| 18 | 03/11 | Instrucciones de edición | "Entrega las US con acciones, los cambios en data-model.md y tasks.md, y el anexo de IA" | Anexo de IA e instrucciones de edición |
+| 12 | 01/11 | Acotar alcance | "Lo que quiero es SOLO modificar esos US. No quiero intervenir en ningún otro archivo que no sean los US 9 y 10 de spec.md" | Edición limitada a `spec.md` |
+| 13 | 01/11 | Texto propio de las US | Entrega de las frases finales de la US 9 y la US 10, redactadas por el integrante (incluye "Por qué esta prioridad" y "Prueba Independiente") | Texto base de ambas US en `spec.md` |
+| 14 | 02/11 | Escenarios de aceptación US 9 | "Solo modifica los escenarios de aceptación del US 9" | Edit en `spec.md` (escenarios de la US 9) |
+| 15 | 02/11 | Escenarios de aceptación US 10 | "Ahora solo modifica los escenarios de aceptación del US 10" | Edit en `spec.md` (escenarios de la US 10; commit `7d835e9`) |
 
-### Sesión 4 — 2026-11-16 (re-análisis y aplicación de cambios)
+### Sesión 4 — 2026-11-02 (revisión de especificación)
 
 | # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
 |---|---|---|---|---|
-| 19 | 16/11 | Re-análisis del repositorio | "Han pasado días y hay cambios; rehaz el análisis, detecta incongruencias, incorpora historias" | Revisión de `spec.md`, `data-model.md`, `tasks.md`, `MER.mmd` y README contra el estado real (commits del 05/11, 09/11 y 16/11) |
-| 20 | 16/11 | Instrucciones de edición actualizadas | "Entrégame las US con acciones, y qué reemplazar en data-model.md y tasks.md; indícame el uso de IA" | US 15 y US 16, FR-046 a FR-056, cambios por archivo y este anexo |
-| 21 | 16/11 | Aplicación de los cambios | "Genera todos los cambios solicitados en el repo y deja copia de los archivos nuevos" | `spec.md`, `data-model.md`, `tasks.md`, `plan.md`, `MER.mmd`, README y este anexo (trasladados a `main` para commit directo) |
-| 22 | 16/11 | Revisión final previa al commit | "Haz una última revisión y verificación de consistencias, irregularidades y sugerencias" | Correcciones de consistencia en `spec.md`, `data-model.md`, `tasks.md`, `MER.mmd`, README y este anexo |
+| 16 | 02/11 | Revisión del repositorio | "Revisa el repo Grupo-11 y las US7 y US8; ¿qué historias conviene incorporar?" | Reemplazo de historias genéricas |
+| 17 | 02/11 | Cobertura del traslado | "¿El traslado no está cubierto por la US4?" | Detección de ambigüedad de alcance |
+| 18 | 02/11 | Cobertura del kárdex | "¿US4 y US6 no aluden ya a un kárdex?" | Distinción dato vs. funcionalidad |
+| 19 | 02/11 | Numeración | "¿Conviene reordenar la numeración de las US?" | Criterio de renumeración |
+| 20 | 02/11 | Historia de traslado | "Idea la US8 sobre traslado entre bodegas" | US8 de traslado (incorporada al repo) |
+| 21 | 02/11 | Uso de la herramienta | "¿Cómo continúo esta conversación desde la terminal de VS Code?" | Sesiones de OpenCode |
 
-> La sesión 4 **reemplaza** las recomendaciones de la sesión 3 que quedaron obsoletas: el repositorio ya había acotado la US 4, ya había incorporado la US 8 de traslado y ya conservaba el kárdex como US 7.
+### Sesión 5 — 2026-11-03 (nuevas historias y modelo de datos)
+
+| # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
+|---|---|---|---|---|
+| 22 | 03/11 | Nuevas historias | "Incorporar toma de inventario y reserva de stock; acotar US4; revisar el MER" | Propuesta de US de reservas y de toma |
+| 23 | 03/11 | Instrucciones de edición | "Entrega las US con acciones, los cambios en data-model.md y tasks.md, y el anexo de IA" | Anexo de IA e instrucciones de edición |
+
+### Sesión 6 — 2026-11-16 (re-análisis y aplicación de cambios)
+
+| # | Fecha | Objetivo | Resumen del prompt | Artefacto / decisión |
+|---|---|---|---|---|
+| 24 | 16/11 | Re-análisis del repositorio | "Han pasado días y hay cambios; rehaz el análisis, detecta incongruencias, incorpora historias" | Revisión de `spec.md`, `data-model.md`, `tasks.md`, `MER.mmd` y README contra el estado real (commits del 05/11, 09/11 y 16/11) |
+| 25 | 16/11 | Instrucciones de edición actualizadas | "Entrégame las US con acciones, y qué reemplazar en data-model.md y tasks.md; indícame el uso de IA" | US 15 y US 16, FR-046 a FR-056, cambios por archivo y este anexo |
+| 26 | 16/11 | Aplicación de los cambios | "Genera todos los cambios solicitados en el repo y deja copia de los archivos nuevos" | `spec.md`, `data-model.md`, `tasks.md`, `plan.md`, `MER.mmd`, README y este anexo (trasladados a `main` para commit directo) |
+| 27 | 16/11 | Revisión final previa al commit | "Haz una última revisión y verificación de consistencias, irregularidades y sugerencias" | Correcciones de consistencia en `spec.md`, `data-model.md`, `tasks.md`, `MER.mmd`, README y este anexo |
+
+> La sesión 6 **reemplaza** las recomendaciones de la sesión 5 que quedaron obsoletas: el repositorio ya había acotado la US 4, ya había incorporado la US 8 de traslado y ya conservaba el kárdex como US 7.
 
 ---
 
@@ -94,10 +109,11 @@ Se declara además que:
 |---|---|---|
 | `README.md` | Redacción de visión y estructura | Revisado e incorporado |
 | `spec.md` — US 7 y US 8 | Redacción inicial | Revisado e incorporado |
+| `spec.md` — US 9 y US 10 | Frases redactadas por el integrante; escenarios de aceptación por IA | Revisado e incorporado |
 | `spec.md` — US 15 y US 16 | Redacción propuesta | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
 | `spec.md` — FR-046 a FR-056 y Clarifications | Redacción propuesta | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
 | `data-model.md` | Entidades, reglas y relaciones | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
-| `MER.mmd` | Diagnóstico y regeneración | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
+| `MER.mmd` | Conversión inicial desde `MER.svg` y regeneración | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
 | `tasks.md` | Desglose de tareas | Revisado e incorporado en `main` (T091–T105 pendientes de ejecución); pendiente de commit manual del equipo |
 | `plan.md` | Componentes y claves de almacenamiento | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
 | `quickstart.md` | Flujos previstos de reservas y tomas | Revisado e incorporado en `main`; pendiente de commit manual del equipo |
