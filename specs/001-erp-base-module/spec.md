@@ -2,7 +2,7 @@
 
 **Rama de la funcionalidad**: 001-erp-base-module  
 **Creada**: 2026-07-08  
-**Estado**: Implementado (v1) · Ampliación propuesta: US 15–16\
+**Estado**: Implementado (v1) · Ampliación propuesta: US 15–17\
 **Entrada**: Descripción del usuario: "Construir un módulo base de software de planificación de recursos empresariales (ERP) que pueda extenderse en módulos ERP personalizados. Debe proporcionar gestión de datos maestros (entidades) y documentos transaccionales vinculados con capacidades de crear/editar/eliminar/buscar."
 
 ## Propósito
@@ -31,6 +31,12 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 - Q: ¿Cómo se cuenta un producto que tiene lotes pero conserva saldo físico sin lote? → A: La toma agrega una línea "sin lote" para ese saldo, de modo que el ajuste no descuadre el saldo por lote.
 - Q: ¿Se puede modificar o anular una toma confirmada? → A: No; una toma `Confirmada` es inmutable. Solo se anula antes de confirmar, y el avance exige el paso `Borrador → En conteo`.
 - Q: ¿Qué ocurre si tras una toma el físico queda por debajo de las reservas activas? → A: El disponible puede quedar negativo; se muestra y se advierte, y se bloquean nuevas reservas y salidas hasta que el físico vuelva a cubrir las reservas o se liberen.
+
+### Session 2026-11-18 — Autenticación con contraseña
+
+- Q: ¿Se mantiene la decisión de "sin autenticación" de la sesión 2026-11-03? → A: No; se revoca. Habrá inicio de sesión con usuario y contraseña (HU 17). No habrá control por rol: todos los usuarios autenticados comparten los mismos permisos y los roles de las historias siguen siendo solo actores de los escenarios.
+- Q: ¿Cómo se obtienen las credenciales en el MVP sin servidor? → A: Se crea un usuario admin por defecto en el primer arranque, con credenciales documentadas en el quickstart; la contraseña se guarda hasheada con salt en localStorage, nunca en claro.
+- Q: ¿Qué ocurre con la sesión al navegar o recargar el navegador? → A: La sesión iniciada persiste en localStorage hasta que el usuario cierre sesión; navegar entre pantallas o recargar no vuelve a pedir la contraseña, y los datos almacenados no se pierden.
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
@@ -110,11 +116,11 @@ Como usuario de negocio, quiero el inicio de una página con botones sencillos q
 
 **Por qué esta prioridad**: La pantalla de inicio es el punto de entrada de la aplicación. Nada más puede alcanzarse sin ella, y los botones sencillos son la ruta más rápida hacia cada flujo de trabajo central.
 
-**Prueba Independiente**: Un usuario abre la aplicación, ve una pantalla con múltiples botones sencillos claramente etiquetados y estadísticas de registros, inicia un nuevo producto o movimiento con un solo clic y ve estadísticas que reflejan los datos almacenados.
+**Prueba Independiente**: Un usuario inicia sesión, ve una pantalla con múltiples botones sencillos claramente etiquetados y estadísticas de registros, inicia un nuevo producto o movimiento con un solo clic y ve estadísticas que reflejan los datos almacenados.
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario abre la aplicación, **cuando** la aplicación carga, **entonces** se muestra la pantalla de inicio con al menos cuatro botones sencillos claramente etiquetados que cubren las tareas clave: crear un nuevo producto, crear un nuevo movimiento, abrir la gestión de productos y buscar registros (etiquetas por defecto de Logística e Inventario; ver Clarificaciones).
+1. **Dado** que el usuario ha iniciado sesión, **cuando** la aplicación carga, **entonces** se muestra la pantalla de inicio con al menos cuatro botones sencillos claramente etiquetados que cubren las tareas clave: crear un nuevo producto, crear un nuevo movimiento, abrir la gestión de productos y buscar registros (etiquetas por defecto de Logística e Inventario; ver Clarificaciones).
 2. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo producto, **entonces** la aplicación abre el área de gestión de productos con un formulario vacío listo para introducir datos.
 3. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de nuevo movimiento, **entonces** la aplicación abre el área de gestión de movimientos con un formulario vacío listo para introducir datos.
 4. **Dado** que se muestra la pantalla de inicio, **cuando** el usuario activa el botón de buscar registros, **entonces** la aplicación abre la pantalla de búsqueda con el campo de búsqueda enfocado.
@@ -513,6 +519,40 @@ Como encargado de bodega, quiero comparar el stock del sistema con un conteo fí
 
 ---
 
+### Historia de Usuario 17 - Iniciar sesión con contraseña y cerrar sesión (Prioridad: P1)
+
+Como usuario de negocio, quiero iniciar sesión con mi usuario y contraseña antes de usar el espacio de trabajo, y poder cerrar la sesión cuando termine mi turno, para que el módulo solo esté accesible para quien tenga credenciales y la sesión quede bajo mi control.
+
+**Por qué esta prioridad**: El inicio de sesión es la puerta de entrada a todas las demás pantallas: sin credenciales no se llega al panel, a la gestión ni a la búsqueda. Al condicionar el acceso al resto de la funcionalidad, se define antes que cualquier otra historia de uso.
+
+**Prueba Independiente**: Un usuario abre la aplicación y ve la pantalla de inicio de sesión; entra con las credenciales del usuario admin por defecto y llega al panel; recarga el navegador y sigue dentro sin volver a pedir la contraseña; al pulsar cerrar sesión regresa a la pantalla de login y, si alguien vuelve a entrar, los datos almacenados siguen intactos.
+
+**Alcance y decisiones**:
+
+- La pantalla de login pide **usuario** y **contraseña**; ambos son obligatorios.
+- En el primer arranque se crea un **usuario admin por defecto** con credenciales documentadas; no hay registro libre de usuarios en esta versión.
+- La contraseña se guarda únicamente como **hash con sal (salt)** en localStorage; jamás se almacena ni se muestra en claro.
+- La sesión iniciada se persiste en localStorage hasta que el usuario la cierre; navegar entre pantallas o recargar el navegador no interrumpe la sesión.
+- **No hay control por rol**: cualquier usuario autenticado tiene los mismos permisos (Clarifications 2026-11-18).
+- El cierre de sesión limpia solo el indicador de sesión; las entidades, documentos y movimientos almacenados no se eliminan.
+- La entrada del usuario se escapa al renderizar para prevenir XSS, igual que el resto de los datos.
+
+**Escenarios de Aceptación**:
+
+1. **Dado** que no hay una sesión iniciada, **cuando** el usuario abre la aplicación (incluido un enlace profundo o una recarga), **entonces** se muestra la pantalla de inicio de sesión con los campos de usuario y contraseña y ningún contenido del espacio de trabajo.
+2. **Dado** el usuario en la pantalla de login, **cuando** deja el usuario o la contraseña en blanco e intenta entrar, **entonces** el sistema impide el acceso y explica qué campos son obligatorios.
+3. **Dado** que existe la sesión de administrador por defecto creada en el primer arranque, **cuando** el usuario introduce sus credenciales correctas, **entonces** el sistema lo autentica y muestra el panel de inicio.
+4. **Dado** un usuario registrado con una contraseña determinada, **cuando** se introduce una contraseña incorrecta, **entonces** el sistema rechaza el acceso con un mensaje genérico que no revela si el usuario existe.
+5. **Dado** que se introduce un usuario que no está registrado, **cuando** el usuario intenta entrar, **entonces** el sistema rechaza el acceso con el mismo mensaje genérico del escenario 4.
+6. **Dado** que el usuario inició sesión, **cuando** recarga el navegador o navega a otra pantalla y vuelve, **entonces** la sesión se mantiene y no se le vuelve a pedir la contraseña.
+7. **Dado** una sesión iniciada, **cuando** el usuario activa el botón de cerrar sesión, **entonces** la sesión termina, se muestra de nuevo la pantalla de login y todas las entidades, documentos y movimientos permanecen intactos.
+8. **Dado** que el usuario cerró sesión, **cuando** otra persona abre la aplicación en el mismo navegador, **entonces** debe iniciar sesión para acceder al espacio de trabajo.
+9. **Dado** el usuario en la pantalla de login, **cuando** introduce HTML o scripts en el campo de usuario o de contraseña, **entonces** el contenido se escapa y no se ejecuta.
+10. **Dado** el usuario admin por defecto creado en el primer arranque, **cuando** se inspecciona el almacenamiento del navegador, **entonces** la contraseña aparece únicamente como hash con sal y nunca en texto plano.
+11. **Dado** que el usuario cierra sesión teniendo un formulario con cambios sin guardar, **cuando** vuelve a iniciar sesión, **entonces** el formulario vuelve a su estado inicial sin aplicar cambios parciales.
+
+---
+
 ### Casos Límite
 
 - ¿Qué ocurre cuando un usuario intenta guardar una entidad sin nombre o código obligatorio?
@@ -543,6 +583,10 @@ Como encargado de bodega, quiero comparar el stock del sistema con un conteo fí
 - ¿Qué ocurre cuando se libera solo una parte de una reserva y queda saldo pendiente?
 - ¿Qué ocurre cuando una toma confirmada deja el disponible negativo y luego se intenta reservar o despachar?
 - ¿Qué ocurre cuando un producto con lotes conserva saldo físico que no está asociado a ningún lote?
+- ¿Qué ocurre cuando un usuario introduce una contraseña incorrecta en el inicio de sesión?
+- ¿Qué ocurre cuando el almacenamiento del navegador está vacío y no existe el usuario admin por defecto?
+- ¿Qué ocurre cuando el usuario cierra sesión con un formulario que tiene cambios sin guardar?
+- ¿Qué ocurre cuando se abre la aplicación mediante un enlace profundo sin haber iniciado sesión?
 
 ## Requisitos *(obligatorio)*
 
@@ -557,7 +601,7 @@ Como encargado de bodega, quiero comparar el stock del sistema con un conteo fí
 - **FR-007**: El sistema DEBE mantener los datos de entidad consistentes tras operaciones de creación, edición y eliminación.
 - **FR-008**: El sistema DEBE permitir a los usuarios añadir, editar y eliminar detalles de documentos de una entidad.
 - **FR-009**: El sistema DEBE asociar cada documento exactamente a una entidad y eliminar los documentos asociados cuando la entidad se elimina.
-- **FR-010**: El sistema DEBE mostrar un panel de inicio como vista inicial, con botones de acción rápida claramente etiquetados para las tareas ERP clave.
+- **FR-010**: El sistema DEBE mostrar un panel de inicio como vista inicial una vez iniciada la sesión, con botones de acción rápida claramente etiquetados para las tareas ERP clave.
 - **FR-011**: El sistema DEBE envolver cada pantalla en un marco de espacio de trabajo persistente compuesto por una barra superior con marca y una barra lateral de navegación de módulos.
 - **FR-012**: La barra lateral DEBE proporcionar botones de módulo para Panel, Productos, Movimientos, Bodegas y Buscar, etiquetados desde la configuración del módulo.
 - **FR-013**: El botón de módulo Productos DEBE mostrar el contenido de gestión de productos (entidades).
@@ -604,6 +648,12 @@ Como encargado de bodega, quiero comparar el stock del sistema con un conteo fí
 - **FR-054**: La toma de inventario NO DEBE modificar las reservas activas y DEBE advertir cuando el físico contado sea menor que lo reservado, mostrando el disponible negativo y bloqueando nuevas reservas y salidas hasta resolverlo.
 - **FR-055**: El sistema NO DEBE permitir más de una toma abierta por bodega, DEBE exigir el paso `Borrador → En conteo` antes de confirmar y NO DEBE permitir modificar ni anular una toma `Confirmada`.
 - **FR-056**: El sistema DEBE rechazar un movimiento o una línea de traslado cuya cantidad supere el saldo físico del lote indicado.
+- **FR-057**: El sistema DEBE exigir un inicio de sesión con usuario y contraseña antes de mostrar cualquier pantalla del espacio de trabajo; sin sesión iniciada solo se muestra la pantalla de login.
+- **FR-058**: El sistema DEBE validar las credenciales contra los usuarios almacenados y rechazar el acceso con un mensaje genérico que no revele si el usuario existe.
+- **FR-059**: El sistema DEBE almacenar las contraseñas únicamente como hash con sal, DEBE escapar la entrada del usuario para prevenir XSS y NO DEBE guardar ni mostrar contraseñas en texto plano.
+- **FR-060**: El sistema DEBE persistir la sesión iniciada en localStorage hasta que el usuario cierre sesión, sin perder datos al navegar entre pantallas ni al recargar el navegador.
+- **FR-061**: El sistema DEBE ofrecer un cierre de sesión que elimine únicamente el indicador de sesión, regrese a la pantalla de login y conserve intactos todos los datos almacenados.
+- **FR-062**: En el primer arranque, el sistema DEBE crear un usuario admin por defecto con credenciales documentadas cuando no exista ningún usuario registrado.
 
 ### Requisitos de Extensibilidad *(obligaciones del módulo base)*
 
@@ -634,7 +684,7 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - **SC-002**: Los usuarios pueden encontrar una entidad existente mediante la búsqueda en menos de 10 segundos tras introducir un término relevante.
 - **SC-003**: Al menos el 90% de los usuarios de prueba pueden completar tareas de crear, editar, eliminar y buscar sin ayuda.
 - **SC-004**: El sistema sigue siendo utilizable para un conjunto de datos de al menos 500 registros de entidad sin pérdida de funcionalidad central.
-- **SC-005**: Un usuario puede alcanzar las pantallas de gestión y búsqueda desde el panel o la barra lateral en menos de 10 segundos en el primer uso.
+- **SC-005**: Un usuario puede iniciar sesión y alcanzar las pantallas de gestión y búsqueda desde el panel o la barra lateral en menos de 10 segundos tras autenticarse.
 - **SC-006**: Toda la funcionalidad existente de gestión de entidades y documentos sigue operativa tras el rediseño del marco ERP y el panel (sin regresiones).
 - **SC-007**: Los usuarios pueden navegar entre las pantallas de panel, gestión y búsqueda sin perder ninguna entidad ni documento almacenado.
 - **SC-008**: Un desarrollador puede producir un módulo adaptado usando solo el archivo de configuración, con cero modificaciones en archivos fuente centrales.
@@ -660,7 +710,7 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 - La pantalla de búsqueda se centra en encontrar y ver entidades; la edición permanece en la pantalla de gestión.
 - El contenido del usuario introducido por el usuario (nombres, descripciones, notas de documentos) DEBE sanitizarse antes de renderizarse en el DOM para prevenir ataques de inyección de scripts (XSS). El módulo base DEBE escapar HTML y atributos de eventos al mostrar datos de localStorage.
 - El MVP se distribuye con una configuración de Logística e Inventario cargada por defecto, de modo que la UI muestra Producto, Bodega y Movimiento; Entidad y Documento son los nombres internos del módulo base y solo aparecen en pantalla si una configuración los define así. Sin configuración, el módulo base retrocede a Entidad/Documento (FR-024). Ver Clarifications.
-- No hay autenticación ni control de acceso por rol en el MVP: los roles mencionados en las historias (usuario de negocio, encargado de bodega, operador de inventario, jefe de logística, encargado de recepción) son actores de los escenarios y todos comparten los mismos permisos. Ver Clarifications.
+- El MVP exige inicio de sesión con usuario y contraseña antes de acceder al espacio de trabajo (HU 17); no hay control de acceso por rol: los roles mencionados en las historias (usuario de negocio, encargado de bodega, operador de inventario, jefe de logística, encargado de recepción) son actores de los escenarios y todos los usuarios autenticados comparten los mismos permisos. Ver Clarifications.
 - Las reservas y las tomas de inventario se gestionan en el mismo espacio de trabajo local (`localStorage`) que el resto del módulo.
 - El disponible se controla por producto y bodega; no se lleva disponibilidad separada por lote en esta versión.
 
