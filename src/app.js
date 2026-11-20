@@ -1,5 +1,7 @@
 import { normalizeConfig, setActiveConfig, getActiveConfig, DEFAULT_ACCENT, lifecycleFor, returnsLifecycle, nextStates } from './module-config.js';
 import { initShell } from './components/shell.js';
+import { ensureDefaultUser, isLoggedIn, logout } from './auth.js';
+import { renderLogin } from './components/login.js';
 import {
   loadEntities,
   addEntity,
@@ -1593,10 +1595,51 @@ export async function initApp(rawConfig) {
   const config = setActiveConfig(normalizeConfig(rawConfig));
   rootElement = document.getElementById('app') ?? document.body;
   applyTheme(config);
-  ensureFrame(rootElement);
-  initShell({ onNavigate: (route) => navigate(route) });
-  navigate('dashboard');
+  ensureDefaultUser();
+  if (!isLoggedIn()) {
+    showLoginGate(rootElement);
+    return config;
+  }
+  enterWorkspace(rootElement);
   return config;
+}
+
+function setFrameVisible(visible) {
+  const topbar = document.querySelector('.topbar');
+  const workspace = document.querySelector('.workspace');
+  const sidebar = document.querySelector('.sidebar');
+  const content = document.getElementById('workspace-content');
+  if (topbar) topbar.hidden = !visible;
+  if (workspace) workspace.hidden = !visible;
+  if (sidebar) sidebar.hidden = !visible;
+  if (content) content.hidden = !visible;
+}
+
+function removeLoginScreen() {
+  document.querySelectorAll('#login-screen').forEach((node) => node.remove());
+}
+
+function showLoginGate(root) {
+  setFrameVisible(false);
+  renderLogin(root, {
+    onSuccess: () => {
+      enterWorkspace(root);
+    },
+  });
+}
+
+function enterWorkspace(root) {
+  removeLoginScreen();
+  setFrameVisible(true);
+  ensureFrame(root);
+  initShell({
+    onNavigate: (route) => navigate(route),
+    onLogout: () => {
+      logout();
+      showLoginGate(root);
+    },
+  });
+  navigate('dashboard');
 }
 
 export function getConfig() {

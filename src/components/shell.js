@@ -50,7 +50,7 @@ const NAV_LABEL_IDS = {
   search: 'nav-search-label',
 };
 
-export function initShell({ onNavigate } = {}) {
+export function initShell({ onNavigate, onLogout } = {}) {
   const config = getActiveConfig();
 
   const brandName = document.getElementById('brand-name');
@@ -60,6 +60,14 @@ export function initShell({ onNavigate } = {}) {
   if (mark) {
     mark.textContent = '';
     mark.appendChild(createMonogram(config.moduleName));
+  }
+
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.hidden = false;
+    logoutBtn.onclick = () => {
+      if (onLogout) onLogout();
+    };
   }
 
   const navLabels = config.labels?.nav ?? {};

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { normalizeConfig } from '../../src/module-config.js';
 import { addEntity, addDocument, loadEntities, loadDocuments } from '../../src/storage.js';
+import { seedSession } from '../helpers/auth.js';
 
 const html = fs.readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
 const css = fs.readFileSync(fileURLToPath(new URL('../../src/styles.css', import.meta.url)), 'utf8');
@@ -30,6 +31,7 @@ beforeEach(async () => {
   globalThis.confirm = vi.fn(() => true);
   w.scrollTo = vi.fn();
   w.localStorage.clear();
+  seedSession();
   vi.resetModules();
   app = await import('../../src/app.js');
   await app.initApp(normalizeConfig(brandedConfig));
