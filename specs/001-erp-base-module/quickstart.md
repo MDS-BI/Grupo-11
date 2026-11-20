@@ -6,6 +6,15 @@
 2. Inicie el servidor de desarrollo con `npm run dev`.
 3. Abra la URL local de Vite en un navegador.
 
+## Inicio de sesión
+
+La aplicación exige iniciar sesión antes de mostrar el espacio de trabajo (HU 17):
+
+- En el primer arranque se crea el usuario **`admin`** con contraseña **`admin123`** (documentado aquí según Clarifications 2026-11-18).
+- Introduzca usuario y contraseña en la pantalla de acceso. Un campo vacío o unas credenciales incorrectas muestran un error; las credenciales inválidas usan un mensaje genérico que no revela si el usuario existe.
+- La sesión persiste al recargar o navegar; pulse **Cerrar sesión** (barra superior, a la derecha) para salir. Cerrar la sesión no borra ningún dato almacenado.
+- La contraseña se guarda como hash con sal: inspeccionando el almacenamiento local no aparece en claro.
+
 ## Flujo de Usuario Principal
 
 La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas y Buscar**.
@@ -18,9 +27,13 @@ La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas
 6. **Buscar**: escriba en la barra de búsqueda (ignora tildes y mayúsculas) y combine filtros de categoría, bodega y "stock bajo"; el detalle de producto se abre en modo solo lectura con retorno a los resultados.
 7. **Traslados**: desde *Gestionar traslados* (cabecera de Movimientos) cree un traslado origen → destino con líneas por producto; despáchelo (descuenta el origen) y recíbalo (abona el destino). El stock total no cambia, solo se redistribuye.
 8. **Devoluciones**: en el panel *Devoluciones* (dentro de Movimientos) pulse **Devolver** en una salida o en un traslado recibido; registre motivo y cantidades (buen estado + dañada). Lleve la devolución por su ciclo: `Solicitada → Aprobada → Recibida en bodega → Cerrada` (o `Rechazada`); el stock solo sube al recibirla en bodega y solo en la cantidad en buen estado (la merma no vuelve al stock).
-9. Actualice la página para confirmar que los registros persisten en el almacenamiento local y que el marco con marca (logotipo, nombre del módulo) permanece consistente.
+9. Actualice la página para confirmar que los registros persisten en el almacenamiento local, que la sesión sigue iniciada y que el marco con marca (logotipo, nombre del módulo) permanece consistente.
 
 ## Validación
+
+- Verifique que sin sesión iniciada solo se muestra la pantalla de login y ningún contenido del espacio de trabajo.
+- Verifique que los campos obligatorios del login muestran su mensaje y que una contraseña incorrecta da el error genérico.
+- Verifique que cerrar sesión regresa al login y que los registros siguen intactos al volver a entrar.
 
 - Verifique que los campos obligatorios muestran errores de validación (`aria-invalid` + mensaje asociado).
 - Verifique que una salida no puede dejar saldo negativo y que el mensaje indica el saldo disponible.

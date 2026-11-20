@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { addEntity, loadEntities } from '../../src/storage.js';
+import { seedSession } from '../helpers/auth.js';
 
 const html = fs.readFileSync(fileURLToPath(new URL('../../index.html', import.meta.url)), 'utf8');
 
@@ -29,6 +30,7 @@ beforeEach(async () => {
   globalThis.confirm = vi.fn(() => true);
   w.scrollTo = vi.fn();
   w.localStorage.clear();
+  seedSession();
   vi.resetModules();
   addEntity({ name: 'Acme', code: 'AC-001' });
   addEntity({ name: 'Globex', code: 'GL-002' });
