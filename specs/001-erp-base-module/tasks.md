@@ -2,8 +2,9 @@
 
 **Entrada**: Documentos de diseño desde `/specs/001-erp-base-module/`
 **Prerrequisitos**: plan.md (obligatorio), spec.md (obligatorio para las historias de usuario), research.md, data-model.md, contracts/
-**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia) y `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible)
+**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación — revocada por la sesión 2026-11-18 —, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia), `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible) y `Session 2026-11-18` (autenticación con contraseña: credenciales `admin/admin123`, botón de cerrar sesión en la barra superior, sin bloqueo de intentos fallidos, helper que siembra sesión en las pruebas existentes)
 **Ajustes tras /speckit.analyze**: añadidas T006 (pruebas de `module-config`, C1) y T024/T027 (reetiquetado FR-029/XR-002, E1)
+**Cambio activo (HU 17)**: tareas T106–T113 en la Fase 20; T091–T105 (US15/US16) quedan fuera de este alcance y siguen pendientes
 
 **Pruebas**: incluidas por historia (Constitución II – Test-First); se ejecutan con `npm test` (Vitest + jsdom).
 
@@ -408,6 +409,32 @@
 
 ---
 
+## Fase 20: Historia de Usuario 17 - Iniciar sesión con contraseña y cerrar sesión (Prioridad: P1) 🔐
+
+**Objetivo**: Exigir inicio de sesión con usuario y contraseña antes de mostrar el espacio de trabajo, con usuario admin por defecto, contraseña hasheada con sal, sesión persistente y cierre de sesión en la barra superior.
+
+**Prueba Independiente**: Un usuario abre la aplicación y ve la pantalla de login; entra con `admin`/`admin123` y llega al panel; recarga el navegador y sigue sin volver a pedir la contraseña; al pulsar cerrar sesión regresa al login y todos los datos almacenados permanecen intactos.
+
+**Alcance**: solo las tareas de esta fase; T091–T105 (US15/US16) quedan pendientes fuera de este cambio.
+
+### Pruebas para la Historia de Usuario 17
+
+- [X] T106 [P] [US17] Añadir pruebas unitarias de autenticación (siembra del admin por defecto, hash con sal sin contraseña en claro, validación de credenciales con error genérico que no revela existencia de usuario, sesión y cierre de sesión) en tests/unit/auth.test.js (FR-058, FR-059, FR-060, FR-061, FR-062)
+- [X] T107 [P] [US17] Añadir pruebas de integración del login (pantalla sin sesión sin contenido del espacio de trabajo, campos obligatorios, credenciales correctas → panel, contraseña incorrecta → error genérico, persistencia tras recargar, cerrar sesión con datos intactos, escape de HTML en los campos) en tests/integration/login.test.js (HU 17)
+
+### Implementación de la Historia de Usuario 17
+
+- [X] T108 [US17] Crear src/auth.js con las claves `erp_base_module:users` y `erp_base_module:session`, hash SHA-256 con sal por usuario, `ensureDefaultUser()` (admin/admin123 en el primer arranque), `login()` con error genérico, `isLoggedIn()`, `getSession()` y `logout()` en src/auth.js (FR-057 a FR-062, contracts/auth-storage.md)
+- [X] T109 [P] [US17] Crear src/components/login.js con el formulario de usuario y contraseña, validación de obligatoriedad, mensaje de error genérico y escape de la entrada (HU 17, escenarios 1, 2, 4, 5, 9)
+- [X] T110 [US17] Actuar como compuerta de sesión en src/app.js: sin sesión solo se muestra el login y el marco del espacio de trabajo queda oculto; con sesión se restaura el marco y se navega al panel; el cierre de sesión regresa al login y recarga la vista limpia (FR-057, FR-060, FR-061; HU 17, escenarios 6, 7, 8, 11)
+- [X] T111 [P] [US17] Añadir el botón de cerrar sesión a la derecha de la barra superior en index.html y src/components/shell.js, y estilizar la pantalla de login y el botón en src/styles.css (HU 17, escenario 7; Clarifications 2026-11-18)
+- [X] T112 [US17] Crear tests/helpers/auth.js que siembre la sesión válida en localStorage y aplicarlo en el `beforeEach` de todas las pruebas de integración existentes (Clarifications 2026-11-18)
+- [X] T113 [US17] Ejecutar la suite completa (`npm test`) y la compilación (`npm run build`) para verificar que el login no rompe las historias existentes
+
+**Punto de control**: Sin sesión no hay acceso al espacio de trabajo; con sesión todas las historias previas siguen funcionando y cerrar sesión conserva los datos.
+
+---
+
 ## Dependencias y Orden de Ejecución
 
 ### Dependencias entre Fases
@@ -431,6 +458,7 @@
 - **US15 (Fase 17)**: Depende de US1, US5, US4 y US7 (producto, bodega, salidas y kárdex)
 - **US16 (Fase 18)**: Depende de US1, US5, US4 y US6 (lotes, ajustes y advertencia de reservas); solo T104 requiere además US15
 - **Pulido (Fase 19)**: Depende de que todas las historias deseadas estén completas
+- **US17 (Fase 20)**: Depende de Fundacional (storage, app.js, shell) y de US13 (marco con barra superior); es la compuerta de acceso de todas las pantallas, así que T112 (helper de sesión para las pruebas existentes) debe ejecutarse junto con el cambio de compuerta de T110 para no dejar la suite en rojo
 
 ### Dependencias entre Historias de Usuario
 
@@ -448,6 +476,7 @@
 - **US14 (P2)**: Depende de US12, US4 y US8
 - **US15 (P2)**: Depende de US1, US4, US5 y US7 (kárdex)
 - **US16 (P2)**: Depende de US1, US4, US5 y US6; T104 (advertencia de reservas) requiere además US15
+- **US17 (P1)**: Depende de Fundacional y US13; bloquea el acceso a todas las pantallas, por lo que su compuerta (T110) se integra con el helper de pruebas (T112) en el mismo cambio
 
 ### Dentro de Cada Historia
 
@@ -467,6 +496,7 @@
 - En Fase 19, T084, T085, T087 y T088 son paralelas antes de la verificación final T089–T090
 - US15 y US16 pueden avanzar en paralelo una vez completadas US4, US5 y US6; solo la advertencia de reservas de T104 depende de US15
 - T094, T101 y T105 comparten `src/app.js`: si se ejecutan en paralelo, coordinar el registro de rutas (`reservations` en Movimientos, `stock-counts` en Bodegas) y de renderers para evitar conflictos
+- En Fase 20: T106 y T107 (pruebas) son paralelas; T109 (login.js) es paralela con T108 (auth.js); T111 (barra superior/estilos) es paralela con T108–T110; T110 y T112 deben integrarse juntas para mantener la suite en verde; T113 cierra la fase
 
 ---
 
