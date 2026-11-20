@@ -48,30 +48,6 @@ Representa un documento transaccional vinculado a una entidad (p. ej., pedido, f
 | createdAt | string | Marca de tiempo de cuándo se creó el documento | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización del documento | Obligatorio |
 
-## Entidad: User (usuario de acceso)
-
-Representa una cuenta de usuario para iniciar sesión en el espacio de trabajo. No hay registro libre: en el primer arranque se siembra un usuario admin por defecto (HU 17, FR-062). La contraseña se almacena únicamente como hash con sal, nunca en claro (FR-059).
-
-| Campo | Tipo | Descripción | Restricciones |
-|---|---|---|---|
-| id | string | Identificador único del usuario | Obligatorio, generado automáticamente |
-| username | string | Nombre de usuario para iniciar sesión | Obligatorio, no vacío, único (comparación sin distinguir mayúsculas/minúsculas) |
-| passwordHash | string | Hash SHA-256 de la contraseña combinada con la sal, en hexadecimal | Obligatorio; generado a partir de `password` + `salt`; nunca se almacena la contraseña en claro |
-| salt | string | Sal aleatoria única por usuario, en hexadecimal | Obligatorio, generado automáticamente con `crypto.getRandomValues` |
-| createdAt | string | Marca de tiempo de creación | Obligatorio |
-| updatedAt | string | Marca de tiempo de la última actualización | Obligatorio |
-
-## Entidad: Session (sesión iniciada)
-
-Indicador de sesión persistida en `localStorage` hasta que el usuario la cierre (FR-060). No tiene ciclo de vida: existe o no existe.
-
-| Campo | Tipo | Descripción | Restricciones |
-|---|---|---|---|
-| username | string | Usuario autenticado | Obligatorio; debe corresponder a un usuario existente |
-| loggedInAt | string | Marca de tiempo de inicio de la sesión | Obligatorio |
-
-La sesión se elimina únicamente al cerrar sesión (FR-061), que limpia solo este indicador y conserva intactos todos los demás datos almacenados.
-
 ## Entidad: ModuleConfig
 
 Objeto de configuración cargado al arrancar que adapta el módulo base en un módulo específico.
@@ -279,14 +255,6 @@ Una toma en estado `Confirmada` es inmutable: no se edita ni se anula. La anulac
 
 > Nota: el cálculo automático de totales (p. ej., `total = subtotal - descuento + impuesto`) queda como punto de extensión; el módulo base valida cada importe de forma independiente para evitar sorpresas por redondeo.
 
-### Usuario y sesión
-
-- Un usuario debe incluir un nombre de usuario no vacío; la unicidad no distingue mayúsculas/minúsculas.
-- La contraseña se transforma en `passwordHash` usando SHA-256 con la `salt` del usuario antes de persistirse; en el almacenamiento nunca debe aparecer la contraseña en claro.
-- Al iniciar sesión, las credenciales se validan contra los usuarios almacenados; el rechazo usa un mensaje genérico que no revela si el usuario existe (FR-058).
-- En el primer arranque, si no existe ningún usuario registrado, se crea el usuario admin por defecto `admin` con la contraseña `admin123` (FR-062, documentada en el quickstart).
-- La sesión se persiste como un único indicador en `erp_base_module:session` y solo se elimina al cerrar sesión; cerrar la sesión no borra entidades, documentos, movimientos ni cualquier otro dato.
-
 ### Almacén
 
 - Un almacén debe incluir un código y un nombre no vacíos.
@@ -370,7 +338,6 @@ Una toma en estado `Confirmada` es inmutable: no se edita ni se anula. La anulac
 - Una toma de inventario referencia exactamente una bodega y contiene una o más líneas por artículo, por lote cuando corresponda y una línea "sin lote" para saldo físico no asociado.
 - Al confirmarse, cada línea de la toma con diferencia distinta de cero genera un movimiento `ajuste` con motivo y `countId` que referencia la toma y es inmutable.
 - El ajuste de una devolución o de una toma modifica el físico en la dirección de la diferencia, y con ello el disponible, sin alterar las reservas.
-- Un usuario referencia exactamente una sesión activa como máximo (una sesión por navegador); la sesión referencia el `username` de un usuario existente.
 
 ## Notas de Extensibilidad
 

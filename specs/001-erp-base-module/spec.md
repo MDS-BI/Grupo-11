@@ -37,10 +37,6 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 - Q: ¿Se mantiene la decisión de "sin autenticación" de la sesión 2026-11-03? → A: No; se revoca. Habrá inicio de sesión con usuario y contraseña (HU 17). No habrá control por rol: todos los usuarios autenticados comparten los mismos permisos y los roles de las historias siguen siendo solo actores de los escenarios.
 - Q: ¿Cómo se obtienen las credenciales en el MVP sin servidor? → A: Se crea un usuario admin por defecto en el primer arranque, con credenciales documentadas en el quickstart; la contraseña se guarda hasheada con salt en localStorage, nunca en claro.
 - Q: ¿Qué ocurre con la sesión al navegar o recargar el navegador? → A: La sesión iniciada persiste en localStorage hasta que el usuario cierre sesión; navegar entre pantallas o recargar no vuelve a pedir la contraseña, y los datos almacenados no se pierden.
-- Q: ¿Cuáles son las credenciales exactas del usuario admin por defecto? → A: Usuario `admin`, contraseña `admin123`; se documentan en el quickstart y se usan en las pruebas.
-- Q: ¿Dónde se muestra el botón de cerrar sesión? → A: En la barra superior, a la derecha, visible en todas las pantallas dentro del marco del espacio de trabajo (HU 13).
-- Q: ¿Qué ocurre con los intentos fallidos repetidos de contraseña? → A: Solo se muestra el mensaje genérico (FR-058) y se permite reintentar sin límite; no hay bloqueo ni contador de intentos en esta versión.
-- Q: ¿Cómo se autentican las pruebas de integración existentes una vez que el login exige sesión (FR-057)? → A: Un helper de pruebas siembra la sesión válida en localStorage antes de cada prueba existente; solo las pruebas de la HU 17 ejercitan el login real desde la interfaz.
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
