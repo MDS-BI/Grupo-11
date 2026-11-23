@@ -2,7 +2,7 @@
 
 **Rama de la funcionalidad**: 001-erp-base-module  
 **Creada**: 2026-07-08  
-**Estado**: Implementado (v1) · Ampliación propuesta: US 15–17\
+**Estado**: Implementado (v1) · Ampliación propuesta: US 15–17 · Ajuste menor aplicado: datos de demostración (sesión 2026-11-23)\
 **Entrada**: Descripción del usuario: "Construir un módulo base de software de planificación de recursos empresariales (ERP) que pueda extenderse en módulos ERP personalizados. Debe proporcionar gestión de datos maestros (entidades) y documentos transaccionales vinculados con capacidades de crear/editar/eliminar/buscar."
 
 ## Propósito
@@ -41,6 +41,13 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 - Q: ¿Dónde se muestra el botón de cerrar sesión? → A: En la barra superior, a la derecha, visible en todas las pantallas dentro del marco del espacio de trabajo (HU 13).
 - Q: ¿Qué ocurre con los intentos fallidos repetidos de contraseña? → A: Solo se muestra el mensaje genérico (FR-058) y se permite reintentar sin límite; no hay bloqueo ni contador de intentos en esta versión.
 - Q: ¿Cómo se autentican las pruebas de integración existentes una vez que el login exige sesión (FR-057)? → A: Un helper de pruebas siembra la sesión válida en localStorage antes de cada prueba existente; solo las pruebas de la HU 17 ejercitan el login real desde la interfaz.
+
+### Session 2026-11-23 — Datos de demostración (ajuste menor)
+
+- Q: ¿Qué productos de supermercado deben sembrarse para que la implementación muestre datos desde el arranque? → A: Tres productos de no perecederos: Arroz Blanco 1 kg (`AR-1001`), Leche Entera 1 L (`LE-1002`) y Aceite Vegetal 900 ml (`AC-1003`), con categoría `Producto terminado`.
+- Q: ¿Los productos sembrados deben incluir bodega y movimientos de entrada para mostrar saldo? → A: No; solo el registro maestro de cada producto, con saldo 0.
+- Q: ¿Cuándo debe ejecutarse la siembra? → A: Solo en el primer arranque, cuando `localStorage` aún no contiene la clave de entidades; si el usuario los elimina, no vuelven al recargar. La siembra vive en el punto de entrada (`src/main.js`) para no afectar la suite de pruebas.
+- Q: ¿Deben tener stock mínimo para mostrar la marca de "stock bajo"? → A: No; ninguno lleva `stockMin`, de modo que la marca sigue siendo un escenario demostrable creando productos manualmente.
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 

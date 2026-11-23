@@ -241,6 +241,14 @@ export function loadEntities() {
   return readList(KEYS.entities);
 }
 
+export function hasStoredEntities() {
+  try {
+    return getStorage().getItem(KEYS.entities) !== null;
+  } catch {
+    return false;
+  }
+}
+
 function saveEntities(list) {
   writeList(KEYS.entities, list);
 }

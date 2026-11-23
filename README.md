@@ -38,6 +38,10 @@ La aplicación se presenta como un espacio de trabajo ERP coherente:
 
 Para más detalles sobre la estructura de datos (entidades, documentos, almacenes, lotes, partidas, movimientos de inventario, traslados, devoluciones, reservas y tomas de inventario), consulta [`specs/001-erp-base-module/data-model.md`](specs/001-erp-base-module/data-model.md).
 
+### Datos de demostración
+
+En el primer arranque (cuando `localStorage` aún no contiene productos) la aplicación siembra tres productos de supermercado para que la implementación muestre datos desde el arranque: **Arroz Blanco 1 kg** (`AR-1001`), **Leche Entera 1 L** (`LE-1002`) y **Aceite Vegetal 900ml** (`AC-1003`), todos con categoría `Producto terminado`, saldo 0 y sin stock mínimo. La siembra es de solo primer arranque: si los elimina, no vuelven al recargar. Vive en `src/seed.js` y se invoca desde `src/main.js`, por lo que la suite de pruebas no queda afectada (ver `specs/001-erp-base-module/quickstart.md`).
+
 ## Estado Actual y Próximos Pasos
 
 1. **Implementación completa del MVP (14 historias de usuario)** — las fases de `specs/001-erp-base-module/tasks.md` (T001–T090) están ejecutadas: producto, gestión, panel, bodegas, movimientos, lotes, stock bajo, documentos, traslados, búsqueda y devoluciones.

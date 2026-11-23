@@ -15,6 +15,21 @@ La aplicación exige iniciar sesión antes de mostrar el espacio de trabajo (HU 
 - La sesión persiste al recargar o navegar; pulse **Cerrar sesión** (barra superior, a la derecha) para salir. Cerrar la sesión no borra ningún dato almacenado.
 - La contraseña se guarda como hash con sal: inspeccionando el almacenamiento local no aparece en claro.
 
+## Datos de demostración (primer arranque)
+
+Para que la implementación muestre datos desde el arranque, en el primer arranque (cuando `localStorage` aún no contiene productos) se siembran tres productos de supermercado:
+
+| Producto | Código | Categoría |
+|---|---|---|
+| Arroz Blanco 1 kg | `AR-1001` | Producto terminado |
+| Leche Entera 1 L | `LE-1002` | Producto terminado |
+| Aceite Vegetal 900 ml | `AC-1003` | Producto terminado |
+
+- Aparecen en **Productos** y en las estadísticas del **Panel** con saldo 0 (sin bodega ni movimientos) y sin marca de "stock bajo" (no llevan stock mínimo).
+- La siembra es de **solo primer arranque**: si los elimina, no vuelven al recargar la página.
+- Para ver la lista vacía como en un entorno sin datos, elimine los tres productos o borre el sitio en las herramientas del navegador.
+- La siembra se ejecuta desde el punto de entrada (`src/main.js`) y no afecta la suite de pruebas.
+
 ## Flujo de Usuario Principal
 
 La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas y Buscar**.

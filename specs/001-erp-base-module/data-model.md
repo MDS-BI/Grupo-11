@@ -23,6 +23,24 @@ Representa el dato maestro central del módulo (p. ej., cliente, proveedor, art�
 | createdAt | string | Marca de tiempo de cuándo se creó la entidad | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización de la entidad | Obligatorio |
 
+### Datos de demostración (siembra en el primer arranque)
+
+Para que la implementación muestre datos desde el arranque, el punto de entrada (`src/main.js`) siembra tres productos de supermercado mediante `src/seed.js`:
+
+| name | code | category | stockMin |
+|---|---|---|---|
+| Arroz Blanco 1 kg | AR-1001 | Producto terminado | vacío |
+| Leche Entera 1 L | LE-1002 | Producto terminado | vacío |
+| Aceite Vegetal 900 ml | AC-1003 | Producto terminado | vacío |
+
+Reglas de la siembra:
+
+- Solo se ejecuta si `localStorage` aún no contiene la clave de entidades (primer arranque); es idempotente y no vuelve a crear los productos si el usuario los elimina.
+- Solo crea el registro maestro de cada producto: sin bodega, movimientos ni lotes asociados, por lo que su saldo es 0.
+- No asigna `stockMin`, de modo que ninguno aparece marcado como "stock bajo" de fábrica.
+- Los identificadores (`id`, `entity_id`) y las marcas de tiempo se generan con las mismas operaciones de almacenamiento que cualquier alta manual, de modo que las validaciones de unicidad de `code` aplican igual.
+- La suite de pruebas no se ve afectada: las pruebas importan `initApp` de `src/app.js` y no pasan por `src/main.js`.
+
 ## Entidad: Document (registro transaccional)
 
 Representa un documento transaccional vinculado a una entidad (p. ej., pedido, factura, contrato), identificado por serie y folio y con desglose económico.

@@ -5,6 +5,7 @@
 **Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación — revocada por la sesión 2026-11-18 —, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia), `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible) y `Session 2026-11-18` (autenticación con contraseña: credenciales `admin/admin123`, botón de cerrar sesión en la barra superior, sin bloqueo de intentos fallidos, helper que siembra sesión en las pruebas existentes)
 **Ajustes tras /speckit.analyze**: añadidas T006 (pruebas de `module-config`, C1) y T024/T027 (reetiquetado FR-029/XR-002, E1)
 **Cambio activo (HU 17)**: tareas T106–T113 en la Fase 20; T091–T105 (US15/US16) quedan fuera de este alcance y siguen pendientes
+**Cambio activo (datos de demostración)**: tareas T114–T118 en la Fase 21
 
 **Pruebas**: incluidas por historia (Constitución II – Test-First); se ejecutan con `npm test` (Vitest + jsdom).
 
@@ -435,6 +436,32 @@
 
 ---
 
+## Fase 21: Datos de demostración - siembra de productos en el primer arranque (Ajuste menor)
+
+**Objetivo**: Que la implementación muestre tres productos de supermercado desde el primer arranque, sin afectar la suite de pruebas ni el comportamiento si el usuario los elimina.
+
+**Prueba Independiente**: Un usuario abre la aplicación en un navegador sin datos previos, inicia sesión y ve en Productos los tres artículos (Arroz, Leche, Aceite) con saldo 0 y sin marca de stock bajo; si los elimina y recarga, no vuelven a aparecer; las pruebas existentes siguen en verde.
+
+**Alcance**: solo las tareas de esta fase; T091–T105 (US15/US16) siguen pendientes fuera de este cambio. Sin dependencias nuevas en `package.json`.
+
+### Pruebas de la siembra
+
+- [X] T114 [P] Añadir pruebas unitarias de `seedDemoProducts` (siembra los 3 productos en el primer arranque, no hace nada si la clave de entidades ya existe, no duplica productos, devuelve el número creado, y `hasStoredEntities` distingue primer arranque de lista vacía) en tests/unit/seed.test.js
+
+### Implementación de la siembra
+
+- [X] T115 [US1] Añadir `hasStoredEntities()` a src/storage.js y crear src/seed.js con `SEED_PRODUCTS` (Arroz Blanco 1 kg/AR-1001, Leche Entera 1 L/LE-1002, Aceite Vegetal 900 ml/AC-1003, categoría Producto terminado, sin stockMin) y `seedDemoProducts()` idempotente según contracts/entity-storage.md
+- [X] T116 [US1] Invocar `seedDemoProducts()` en src/main.js antes de `initApp()`, de modo que solo el punto de entrada real siembre (las pruebas importan `initApp` de src/app.js)
+
+### Documentación y verificación
+
+- [X] T117 [P] Documentar los tres productos de demostración y el criterio de primer arranque en specs/001-erp-base-module/quickstart.md y README.md
+- [X] T118 Ejecutar la suite completa (`npm test`) y la compilación (`npm run build`) para verificar que la siembra no rompe pruebas existentes
+
+**Punto de control**: La aplicación muestra los tres productos al primer arranque, no los recrea si se eliminan y la suite permanece en verde.
+
+---
+
 ## Dependencias y Orden de Ejecución
 
 ### Dependencias entre Fases
@@ -459,6 +486,7 @@
 - **US16 (Fase 18)**: Depende de US1, US5, US4 y US6 (lotes, ajustes y advertencia de reservas); solo T104 requiere además US15
 - **Pulido (Fase 19)**: Depende de que todas las historias deseadas estén completas
 - **US17 (Fase 20)**: Depende de Fundacional (storage, app.js, shell) y de US13 (marco con barra superior); es la compuerta de acceso de todas las pantallas, así que T112 (helper de sesión para las pruebas existentes) debe ejecutarse junto con el cambio de compuerta de T110 para no dejar la suite en rojo
+- **Datos de demostración (Fase 21)**: Depende de Fundacional (US1/`addEntity`); es un ajuste menor independiente del resto de historias. T114 (pruebas) va antes que T115 (implementación) y T116 (entrada) va después de T115; T117 puede paralelizarse con T116 y T118 cierra la fase
 
 ### Dependencias entre Historias de Usuario
 

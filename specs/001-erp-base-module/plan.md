@@ -5,7 +5,7 @@
 
 ## Resumen
 
-Construir una aplicación web ligera con Vite que sirva como módulo base de software de planificación de recursos empresariales (ERP). El módulo proporciona la base común que todo módulo ERP personalizado necesita: gestión de datos maestros (Entidades), documentos transaccionales vinculados (Documentos), flujos de crear/editar/eliminar/buscar, validación y persistencia local — construida principalmente con HTML, CSS y JavaScript vanilla. La aplicación se presenta como un espacio de trabajo ERP coherente: una barra superior con marca (logotipo derivado + nombre del módulo) y una barra lateral persistente de botones de módulo envuelven cada pantalla, y la pantalla de entrada es un panel estilo ERP que ofrece botones de acción rápida para las tareas clave (nueva entidad, nuevo documento, abrir áreas de gestión, buscar registros) además de estadísticas de registros en vivo. **El acceso al espacio de trabajo está protegido por un inicio de sesión con usuario y contraseña (HU 17)**: sin sesión iniciada solo se muestra la pantalla de login; la sesión persiste en `localStorage` hasta cerrarla, el usuario admin por defecto (`admin`/`admin123`) se siembra en el primer arranque con su contraseña guardada como hash con sal, y el cierre de sesión se ofrece en la barra superior sin perder datos. La adaptación a un módulo específico (p. ej., Ventas) se realiza mediante un único archivo de configuración (`src/module-config.js`) que cubre terminología, campos personalizados, ciclo de vida de documentos y color de acento, de modo que el código central permanece intacto. El módulo se distribuye con la configuración de **Logística e Inventario** cargada por defecto (Producto, Bodega, Movimiento) e incorpora, además del CRUD base de entidades y documentos, bodegas con activación/desactivación, movimientos de inventario con saldo derivado, control de lotes con FEFO, kárdex por producto, stock mínimo, traslados entre bodegas como dos movimientos vinculados, devoluciones con merma, reservas de stock con disponible derivado y tomas de inventario con ajuste por diferencia.
+Construir una aplicación web ligera con Vite que sirva como módulo base de software de planificación de recursos empresariales (ERP). El módulo proporciona la base común que todo módulo ERP personalizado necesita: gestión de datos maestros (Entidades), documentos transaccionales vinculados (Documentos), flujos de crear/editar/eliminar/buscar, validación y persistencia local — construida principalmente con HTML, CSS y JavaScript vanilla. La aplicación se presenta como un espacio de trabajo ERP coherente: una barra superior con marca (logotipo derivado + nombre del módulo) y una barra lateral persistente de botones de módulo envuelven cada pantalla, y la pantalla de entrada es un panel estilo ERP que ofrece botones de acción rápida para las tareas clave (nueva entidad, nuevo documento, abrir áreas de gestión, buscar registros) además de estadísticas de registros en vivo. **El acceso al espacio de trabajo está protegido por un inicio de sesión con usuario y contraseña (HU 17)**: sin sesión iniciada solo se muestra la pantalla de login; la sesión persiste en `localStorage` hasta cerrarla, el usuario admin por defecto (`admin`/`admin123`) se siembra en el primer arranque con su contraseña guardada como hash con sal, y el cierre de sesión se ofrece en la barra superior sin perder datos. La adaptación a un módulo específico (p. ej., Ventas) se realiza mediante un único archivo de configuración (`src/module-config.js`) que cubre terminología, campos personalizados, ciclo de vida de documentos y color de acento, de modo que el código central permanece intacto. El módulo se distribuye con la configuración de **Logística e Inventario** cargada por defecto (Producto, Bodega, Movimiento) e incorpora, además del CRUD base de entidades y documentos, bodegas con activación/desactivación, movimientos de inventario con saldo derivado, control de lotes con FEFO, kárdex por producto, stock mínimo, traslados entre bodegas como dos movimientos vinculados, devoluciones con merma, reservas de stock con disponible derivado y tomas de inventario con ajuste por diferencia. En el primer arranque, el punto de entrada siembra tres productos de demostración de supermercado (Arroz, Leche, Aceite) mediante `src/seed.js` solo cuando `localStorage` aún no contiene entidades, de modo que la implementación muestre datos desde el arranque sin afectar la suite de pruebas (que no pasa por `main.js`).
 
 ## Contexto Técnico
 
@@ -50,9 +50,10 @@ specs/001-erp-base-module/
 index.html
 
 src/
-├── main.js
+├── main.js              (punto de entrada: siembra los productos de demostración y arranca la app)
 ├── app.js
 ├── storage.js
+├── seed.js              (datos de demostración: 3 productos de supermercado sembrados en el primer arranque)
 ├── auth.js              (usuarios, hash con sal, sesión en localStorage: FR-057 a FR-062)
 ├── module-config.js
 ├── styles.css
@@ -82,6 +83,7 @@ tests/
 ├── unit/
 │   ├── storage.test.js
 │   ├── auth.test.js
+│   ├── seed.test.js       (siembra de datos de demostración: primer arranque e idempotencia)
 │   └── module-config.test.js
 └── integration/
     └── [pruebas por journey: login, CRUD entidades, documentos, bodegas, movimientos, kárdex, lotes, stock bajo, búsqueda, relabeling, dashboard, shell, ciclo de vida, traslados, devoluciones, reservas, tomas de inventario]

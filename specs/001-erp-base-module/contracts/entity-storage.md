@@ -31,6 +31,18 @@ Cada registro de entidad debe incluir:
 - `addEntity(entity)`: añade una nueva entidad.
 - `updateEntity(id, updates)`: actualiza una entidad existente.
 - `deleteEntity(id)`: elimina una entidad por id.
+- `hasStoredEntities()`: devuelve `true` si la clave de entidades existe en `localStorage` (aunque la lista esté vacía); `false` en el primer arranque. Usado por la siembra de demostración para decidir si debe ejecutarse.
+
+## Siembra de Datos de Demostración (`src/seed.js`)
+
+- `SEED_PRODUCTS`: lista fija de tres productos de supermercado (`Arroz Blanco 1 kg`/`AR-1001`, `Leche Entera 1 L`/`LE-1002`, `Aceite Vegetal 900 ml`/`AC-1003`), con `category` = `Producto terminado` y sin `stockMin`.
+- `seedDemoProducts()`: si `hasStoredEntities()` devuelve `false`, crea los tres productos con `addEntity()` y devuelve el número de productos creados; si la clave ya existe, no hace nada y devuelve `0`. Idempotente: nunca duplica ni recrea productos eliminados por el usuario.
+- Se invoca únicamente desde `src/main.js` antes de `initApp()`, de modo que la suite de pruebas (que importa `initApp` de `src/app.js`) no queda afectada.
+
+Expectativas de validación de la siembra:
+
+- Cada producto sembrado debe pasar la validación normal (`name` y `code` obligatorios, `code` único sin distinguir mayúsculas/minúsculas).
+- Si la siembra falla (p. ej., código duplicado preexistente), la aplicación debe continuar arrancando; la siembra nunca bloquea el arranque.
 
 ## Almacenamiento de Documentos
 
