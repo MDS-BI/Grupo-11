@@ -5,18 +5,21 @@ export const SEED_PRODUCTS = [
     name: 'Arroz Blanco 1 kg',
     code: 'AR-1001',
     category: 'Producto terminado',
+    unit: 'Kg',
     description: 'Arroz blanco envasado, grano largo. Producto de no perecedero.',
   },
   {
     name: 'Leche Entera 1 L',
     code: 'LE-1002',
     category: 'Producto terminado',
+    unit: 'L',
     description: 'Leche entera pasteurizada en caja de 1 litro.',
   },
   {
     name: 'Aceite Vegetal 900 ml',
     code: 'AC-1003',
     category: 'Producto terminado',
+    unit: 'ml',
     description: 'Aceite vegetal comestible en botella de 900 ml.',
   },
 ];

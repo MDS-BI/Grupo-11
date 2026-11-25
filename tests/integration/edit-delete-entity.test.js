@@ -69,11 +69,11 @@ describe('Historia de Usuario 2 - editar y eliminar productos', () => {
     const item = itemWithText('Acme');
     item.querySelector('[data-action="edit"]').click();
     qs('category').value = 'Insumo';
-    qs('paymentTerms').value = 'contado';
+    qs('unit').value = 'Caja';
     submitForm();
     const saved = loadEntities()[0];
     expect(saved.category).toBe('Insumo');
-    expect(saved.paymentTerms).toBe('contado');
+    expect(saved.unit).toBe('Caja');
     expect(saved.code).toBe('AC-001');
   });
 

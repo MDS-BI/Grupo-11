@@ -106,10 +106,6 @@ export function isValidDate(value) {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
 
-function isEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -195,7 +191,7 @@ function matchesQuery(fields, query) {
 
 /* ========================= Entidades ========================= */
 
-const ENTITY_OPTIONAL_STRINGS = ['taxId', 'email', 'phone', 'address', 'category', 'description', 'paymentTerms'];
+const ENTITY_OPTIONAL_STRINGS = ['category', 'unit', 'description'];
 
 export function validateEntity(data = {}, { ignoreId = null } = {}) {
   const errors = {};
@@ -216,20 +212,16 @@ export function validateEntity(data = {}, { ignoreId = null } = {}) {
 
   for (const key of ENTITY_OPTIONAL_STRINGS) value[key] = trimString(data[key]);
 
-  if (value.email && !isEmail(value.email)) errors.email = 'El correo electrónico no tiene un formato válido.';
-
-  const creditLimit = optionalNumber(data.creditLimit);
-  if (!creditLimit.ok) errors.creditLimit = 'El límite de crédito debe ser un número no negativo.';
-  value.creditLimit = creditLimit.value;
+  if (value.unit) {
+    const units = getActiveConfig()?.units ?? [];
+    if (!units.includes(value.unit)) {
+      errors.unit = `La unidad de medida "${value.unit}" no pertenece a la lista fija de unidades (FR-064).`;
+    }
+  }
 
   const stockMin = optionalNumber(data.stockMin, { integer: true });
   if (!stockMin.ok) errors.stockMin = 'El stock mínimo debe ser un entero no negativo o quedar vacío.';
   value.stockMin = stockMin.value;
-
-  value.targetDate = trimString(data.targetDate);
-  if (value.targetDate && !isValidDate(value.targetDate)) {
-    errors.targetDate = 'La fecha objetivo debe ser una fecha válida (AAAA-MM-DD).';
-  }
 
   Object.assign(value, applyCustomFields('entity', data));
   Object.assign(errors, validateCustomFields('entity', data));
@@ -316,12 +308,6 @@ export function searchEntities(query = '', filters = {}) {
   if (filters.category) {
     results = results.filter((e) => normalizeText(e.category) === normalizeText(filters.category));
   }
-  if (filters.targetDateFrom) {
-    results = results.filter((e) => e.targetDate && e.targetDate >= filters.targetDateFrom);
-  }
-  if (filters.targetDateTo) {
-    results = results.filter((e) => e.targetDate && e.targetDate <= filters.targetDateTo);
-  }
   if (filters.stockStatus === 'low') results = results.filter((e) => isLowStock(e));
   if (filters.stockStatus === 'ok') results = results.filter((e) => !isLowStock(e));
   if (filters.inStock) results = results.filter((e) => calculateStock(e.entity_id) > 0);
@@ -334,14 +320,9 @@ export function searchEntities(query = '', filters = {}) {
         [
           e.name,
           e.code,
-          e.taxId,
-          e.email,
-          e.phone,
-          e.address,
           e.category,
+          e.unit,
           e.description,
-          e.targetDate,
-          e.paymentTerms,
           customFieldSearchText(e),
           String(e.stockMin ?? ''),
         ],
@@ -384,14 +365,14 @@ export function validateDocument(data = {}) {
 
   value.startDate = trimString(data.startDate);
   if (!value.startDate || !isValidDate(value.startDate)) {
-    errors.startDate = 'La fecha de inicio es obligatoria y debe ser válida (AAAA-MM-DD).';
+    errors.startDate = 'La fecha del documento es obligatoria y debe ser válida (AAAA-MM-DD).';
   }
   value.endDate = trimString(data.endDate);
   if (!value.endDate || !isValidDate(value.endDate)) {
-    errors.endDate = 'La fecha de fin es obligatoria y debe ser válida (AAAA-MM-DD).';
+    errors.endDate = 'La fecha de vigencia es obligatoria y debe ser válida (AAAA-MM-DD).';
   }
   if (!errors.startDate && !errors.endDate && value.endDate < value.startDate) {
-    errors.endDate = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
+    errors.endDate = 'La fecha de vigencia no puede ser anterior a la fecha del documento.';
   }
 
   for (const key of ['quantity', 'subtotal', 'discount', 'taxAmount', 'totalAmount']) {
@@ -415,7 +396,6 @@ export function validateDocument(data = {}) {
   }
 
   value.currency = trimString(data.currency);
-  value.paymentTerms = trimString(data.paymentTerms);
   value.notes = trimString(data.notes);
   value.status = trimString(data.status);
 

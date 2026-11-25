@@ -66,6 +66,7 @@ import {
   clearWarehouseFormErrors,
   renderWarehouseList,
 } from './components/warehouse-list.js';
+import { renderWarehouseDetail } from './components/warehouse-detail.js';
 import {
   renderMovementForm,
   getMovementFormValues,
@@ -123,6 +124,7 @@ const VIEW_IDS = {
   entities: 'view-entities',
   movements: 'view-movements',
   warehouses: 'view-warehouses',
+  warehouse: 'view-warehouse',
   search: 'view-search',
   product: 'view-product',
   kardex: 'view-kardex',
@@ -141,6 +143,7 @@ const MODULE_OF_ROUTE = {
   movements: 'movements',
   transfers: 'movements',
   warehouses: 'warehouses',
+  warehouse: 'warehouses',
   search: 'search',
 };
 
@@ -313,6 +316,7 @@ function renderEntitiesView(section) {
 
   const form = renderEntityForm(formMount, {
     categories: config.categories,
+    units: config.units ?? [],
     customFields: entityCustomFields(),
     labels: config.labels,
   });
@@ -345,6 +349,7 @@ function refreshWarehouseList(section) {
     onEdit: (warehouse) => startEditWarehouse(section, warehouse),
     onToggle: (warehouse) => handleWarehouseToggle(section, warehouse),
     onDelete: (warehouse) => handleWarehouseDelete(section, warehouse),
+    onDetail: (warehouse) => navigate('warehouse', { warehouse_id: warehouse.id }),
   });
   const count = list.querySelectorAll('.record-item').length;
   empty.hidden = count > 0;
@@ -503,6 +508,19 @@ function renderWarehousesView(section) {
 }
 
 registerView('warehouses', renderWarehousesView);
+
+function renderWarehouseRoute(section, params) {
+  const warehouse =
+    loadWarehouses().find((w) => w.id === params.warehouse_id || w.code === params.warehouse_id) ?? null;
+  renderWarehouseDetail(section, {
+    warehouse,
+    products: loadEntities(),
+    onBack: () => navigate('warehouses'),
+    onOpenProduct: (entity) => navigate('product', { entity_id: entity.entity_id, from: 'warehouse' }),
+  });
+}
+
+registerView('warehouse', renderWarehouseRoute);
 
 function refreshMovementList(section) {
   const config = getActiveConfig();
@@ -1097,6 +1115,7 @@ function renderProductView(section, params) {
   };
   addDetail('Código', entity.code);
   addDetail('Categoría', entity.category);
+  addDetail('Unidad de medida', entity.unit);
   addDetail('Descripción', entity.description);
   if (entity.stockMin !== undefined && entity.stockMin !== null) {
     addDetail('Stock mínimo', entity.stockMin);

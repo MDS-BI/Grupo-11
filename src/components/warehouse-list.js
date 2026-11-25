@@ -152,7 +152,11 @@ export function showWarehouseFormSuccess(form, message) {
   }
 }
 
-export function renderWarehouseList(container, warehouses, { onEdit = null, onToggle = null, onDelete = null } = {}) {
+export function renderWarehouseList(
+  container,
+  warehouses,
+  { onEdit = null, onToggle = null, onDelete = null, onDetail = null } = {}
+) {
   container.textContent = '';
 
   for (const warehouse of warehouses) {
@@ -185,6 +189,15 @@ export function renderWarehouseList(container, warehouses, { onEdit = null, onTo
     const actions = document.createElement('div');
     actions.className = 'record-actions';
 
+    if (onDetail) {
+      const detail = document.createElement('button');
+      detail.type = 'button';
+      detail.className = 'btn btn-sm';
+      detail.dataset.action = 'detail';
+      detail.textContent = 'Ver detalle';
+      detail.addEventListener('click', () => onDetail(warehouse));
+      actions.appendChild(detail);
+    }
     if (onEdit) {
       const edit = document.createElement('button');
       edit.type = 'button';

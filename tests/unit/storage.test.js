@@ -96,9 +96,9 @@ describe('entity storage', () => {
   });
 
   it('rejects an invalid update without changing the stored record', () => {
-    const e = addEntity({ name: 'X', code: 'X-1', email: 'ok@dominio.mx' });
-    expect(() => updateEntity(e.id, { email: 'not-an-email' })).toThrow(/correo electrónico/);
-    expect(loadEntities()[0].email).toBe('ok@dominio.mx');
+    const e = addEntity({ name: 'X', code: 'X-1', stockMin: 5 });
+    expect(() => updateEntity(e.id, { stockMin: -1 })).toThrow(/stock mínimo/);
+    expect(loadEntities()[0].stockMin).toBe(5);
     expect(() => updateEntity(e.id, { name: '' })).toThrow(/obligatorio/);
   });
 
@@ -123,65 +123,56 @@ describe('entity storage', () => {
     expect(all[0].id).toBe(e2.id);
   });
 
-  it('persists ERP identity and contact fields', () => {
+  it('persists inventory fields', () => {
     const e = addEntity({
+      name: 'Acme',
+      code: 'AC-001',
+      category: 'Insumo',
+      unit: 'Kg',
+      description: 'Material de oficina',
+    });
+    const saved = loadEntities()[0];
+    expect(saved.category).toBe('Insumo');
+    expect(saved.unit).toBe('Kg');
+    expect(saved.description).toBe('Material de oficina');
+    const updated = updateEntity(e.id, { unit: 'Caja' });
+    expect(updated.unit).toBe('Caja');
+  });
+
+  it('accepts an empty unit but rejects a value outside the fixed list', () => {
+    expect(validateEntity({ name: 'A', code: 'B', unit: '' }).valid).toBe(true);
+    expect(validateEntity({ name: 'A', code: 'B', unit: 'Kg' }).valid).toBe(true);
+    const res = validateEntity({ name: 'A', code: 'B', unit: 'Bidón' });
+    expect(res.valid).toBe(false);
+    expect(res.errors.unit).toContain('unidad de medida');
+  });
+
+  it('does not persist removed template fields', () => {
+    addEntity({
       name: 'Acme',
       code: 'AC-001',
       taxId: 'RFC800101AB1',
       email: 'ventas@acme.mx',
       phone: '555-1234',
       address: 'Av. Reforma 100',
+      targetDate: '2026-09-01',
+      creditLimit: 50000,
+      paymentTerms: 'neto 30',
     });
     const saved = loadEntities()[0];
-    expect(saved.taxId).toBe('RFC800101AB1');
-    expect(saved.email).toBe('ventas@acme.mx');
-    expect(saved.phone).toBe('555-1234');
-    expect(saved.address).toBe('Av. Reforma 100');
-    const updated = updateEntity(e.id, { phone: '555-9999' });
-    expect(updated.phone).toBe('555-9999');
+    for (const key of ['taxId', 'email', 'phone', 'address', 'targetDate', 'creditLimit', 'paymentTerms']) {
+      expect(saved[key]).toBeUndefined();
+    }
   });
 
-  it('rejects a malformed email address', () => {
-    const res = validateEntity({ name: 'A', code: 'B', email: 'not-an-email' });
-    expect(res.valid).toBe(false);
-    expect(res.errors.email).toContain('correo electrónico');
-    expect(validateEntity({ name: 'A', code: 'B', email: 'ventas@acme.mx' }).valid).toBe(true);
-    expect(validateEntity({ name: 'A', code: 'B', email: '' }).valid).toBe(true);
-  });
-
-  it('validates the credit limit as a non-negative number', () => {
-    expect(validateEntity({ name: 'A', code: 'B', creditLimit: -1 }).valid).toBe(false);
-    expect(validateEntity({ name: 'A', code: 'B', creditLimit: -1 }).errors.creditLimit).toContain(
-      'no negativo'
-    );
-    expect(validateEntity({ name: 'A', code: 'B', creditLimit: 5000 }).valid).toBe(true);
-    addEntity({ name: 'A', code: 'B', creditLimit: '5000' });
-    expect(loadEntities()[0].creditLimit).toBe(5000);
-  });
-
-  it('accepts an empty target date but rejects an invalid one', () => {
-    expect(validateEntity({ name: 'A', code: 'B', targetDate: '' }).valid).toBe(true);
-    expect(validateEntity({ name: 'A', code: 'B', targetDate: '2026-08-06' }).valid).toBe(true);
-    const res = validateEntity({ name: 'A', code: 'B', targetDate: '2026-13-45' });
-    expect(res.valid).toBe(false);
-    expect(res.errors.targetDate).toBeDefined();
-  });
-
-  it('persists target date on create and update', () => {
-    const e = addEntity({ name: 'Acme', code: 'AC-001', targetDate: '2026-09-01' });
-    expect(loadEntities()[0].targetDate).toBe('2026-09-01');
-    const updated = updateEntity(e.id, { targetDate: '2026-10-01' });
-    expect(updated.targetDate).toBe('2026-10-01');
-  });
-
-  it('searches by target date, tax id and email', () => {
-    addEntity({ name: 'Acme', code: 'AC-001', targetDate: '2026-09-01', taxId: 'RFC800101AB1', email: 'ventas@acme.mx' });
-    addEntity({ name: 'Globex', code: 'GL-002', targetDate: '2026-11-20', taxId: 'RFC991231CD2', email: 'hola@globex.mx' });
-    expect(searchEntities('2026-09-01').length).toBe(1);
-    expect(searchEntities('2026-09-01')[0].name).toBe('Acme');
-    expect(searchEntities('RFC800101AB1').length).toBe(1);
-    expect(searchEntities('ventas@acme.mx').length).toBe(1);
-    expect(searchEntities('globex.mx').length).toBe(1);
+  it('searches by unit and ignores removed template fields', () => {
+    addEntity({ name: 'Acme', code: 'AC-001', unit: 'Kg', description: 'Arroz' });
+    addEntity({ name: 'Globex', code: 'GL-002', unit: 'Caja', description: 'Leche' });
+    expect(searchEntities('kg').length).toBe(1);
+    expect(searchEntities('kg')[0].name).toBe('Acme');
+    expect(searchEntities('caja').length).toBe(1);
+    expect(searchEntities('RFC800101AB1').length).toBe(0);
+    expect(searchEntities('ventas@acme.mx').length).toBe(0);
   });
 
   it('normalizes text so searches ignore tildes and case', () => {
@@ -317,7 +308,6 @@ describe('document storage', () => {
         totalAmount: 522.8,
         currency: 'MXN',
         status: 'emitida',
-        paymentTerms: 'neto 30',
         notes: 'Entrega en almacén',
       })
     );
@@ -333,7 +323,6 @@ describe('document storage', () => {
     expect(all[0].discount).toBe(50);
     expect(all[0].taxAmount).toBe(72.8);
     expect(all[0].totalAmount).toBe(522.8);
-    expect(all[0].paymentTerms).toBe('neto 30');
     expect(all[0].notes).toBe('Entrega en almacén');
     expect(documentNumber(all[0])).toBe('FAC-1001');
   });

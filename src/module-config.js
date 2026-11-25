@@ -5,15 +5,9 @@ export const BASE_FIELD_KEYS = [
   'entity_id',
   'name',
   'code',
-  'taxId',
-  'email',
-  'phone',
-  'address',
   'category',
+  'unit',
   'description',
-  'targetDate',
-  'creditLimit',
-  'paymentTerms',
   'stockMin',
   'series',
   'folio',
@@ -125,6 +119,7 @@ export const DEFAULT_CONFIG = {
     },
   },
   categories: ['General', 'Materia prima', 'Producto terminado', 'Insumo'],
+  units: ['Unidad', 'Kg', 'G', 'L', 'ml', 'Caja', 'Par', 'Rollo'],
   customFields: [],
   statusLifecycle: {
     references: {
@@ -319,6 +314,14 @@ export function normalizeConfig(raw) {
       errors.push('Configuración inválida: "categories" debe ser una lista de textos no vacíos.');
     } else {
       out.categories = [...new Set(raw.categories.map((c) => c.trim()))];
+    }
+  }
+
+  if (raw.units !== undefined) {
+    if (!Array.isArray(raw.units) || raw.units.length === 0 || raw.units.some((u) => typeof u !== 'string' || !u.trim())) {
+      errors.push('Configuración inválida: "units" debe ser una lista de textos no vacíos.');
+    } else {
+      out.units = [...new Set(raw.units.map((u) => u.trim()))];
     }
   }
 

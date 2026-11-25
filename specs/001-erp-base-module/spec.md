@@ -2,7 +2,7 @@
 
 **Rama de la funcionalidad**: 001-erp-base-module  
 **Creada**: 2026-07-08  
-**Estado**: Implementado (v1) · Ampliación propuesta: US 15–17 · Ajuste menor aplicado: datos de demostración (sesión 2026-11-23)\
+**Estado**: Implementado (v1) · Ampliación propuesta: US 15–17 · Ajuste menor aplicado: datos de demostración (sesión 2026-11-23) · Cambio de alcance en curso: campos de producto de inventario, detalle de bodega y limpieza de textos de plantilla (sesión 2026-11-23)\
 **Entrada**: Descripción del usuario: "Construir un módulo base de software de planificación de recursos empresariales (ERP) que pueda extenderse en módulos ERP personalizados. Debe proporcionar gestión de datos maestros (entidades) y documentos transaccionales vinculados con capacidades de crear/editar/eliminar/buscar."
 
 ## Propósito
@@ -49,24 +49,31 @@ Este proyecto sirve como módulo base reutilizable para construir módulos ERP p
 - Q: ¿Cuándo debe ejecutarse la siembra? → A: Solo en el primer arranque, cuando `localStorage` aún no contiene la clave de entidades; si el usuario los elimina, no vuelven al recargar. La siembra vive en el punto de entrada (`src/main.js`) para no afectar la suite de pruebas.
 - Q: ¿Deben tener stock mínimo para mostrar la marca de "stock bajo"? → A: No; ninguno lleva `stockMin`, de modo que la marca sigue siendo un escenario demostrable creando productos manualmente.
 
+### Session 2026-11-23 — Campos de producto de inventario, detalle de bodega y limpieza de plantilla (cambio de alcance)
+
+- Q: ¿Qué ocurre con los campos genéricos de plantilla del formulario de producto (identificación fiscal, correo, teléfono, dirección, fecha objetivo, límite de crédito y condiciones de pago)? → A: Se eliminan por completo, no se ocultan: del formulario, de la validación, de la búsqueda, del modelo de datos y de las pruebas.
+- Q: ¿Cómo se captura la unidad de medida de un producto? → A: Campo opcional «Unidad de medida» con lista fija definida en la configuración del módulo (p. ej., Unidad, Kg, G, L, ml, Caja, Par, Rollo), no texto libre.
+- Q: ¿Cómo se consulta el detalle de una bodega y qué muestra? → A: Un botón «Ver detalle» en cada fila de la lista abre una pantalla propia (ruta `warehouse`) con los datos de la bodega y la tabla de los productos que tienen saldo en ella, calculado desde sus movimientos; cada fila muestra la marca de «stock bajo» cuando el saldo de esa bodega es menor que el stock mínimo del producto, con enlace al detalle de cada producto y estado vacío cuando ninguno tiene saldo. El saldo nunca se edita directamente.
+- Q: ¿Hasta dónde llega la revisión de textos genéricos heredados de la plantilla? → A: Revisión completa: además del formulario de producto, se corrigen todos los textos y campos de plantilla que no tengan sentido en logística e inventario (p. ej., el placeholder de búsqueda y las etiquetas de fechas de los documentos de respaldo).
+
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
 ### Historia de Usuario 1 - Crear y organizar productos (Prioridad: P1)
-Como encargado de bodega, quiero crear productos con su identidad, contacto, clasificación y stock mínimo para construir y mantener el catálogo maestro del inventario.
+Como encargado de bodega, quiero crear productos con su nombre, código, clasificación, unidad de medida y stock mínimo para construir y mantener el catálogo maestro del inventario.
 
 **Por qué esta prioridad**: El catálogo de productos es el dato maestro central del módulo: sin productos no se pueden registrar movimientos, lotes, traslados ni documentos de respaldo, y el resto de la experiencia no puede aportar valor.
 
-**Prueba Independiente**: Un usuario abre Productos, crea un producto con nombre y código, completa opcionalmente sus datos de identidad, contacto, clasificación y stock mínimo, y comprueba que se guarda y aparece en la lista.
+**Prueba Independiente**: Un usuario abre Productos, crea un producto con nombre y código, completa opcionalmente categoría, unidad de medida, descripción y stock mínimo, y comprueba que se guarda y aparece en la lista.
 
 **Escenarios de Aceptación**:
 
 1. **Dado** que el usuario está viendo la lista de productos, **cuando** crea uno nuevo con nombre y código, **entonces** el producto se guarda y aparece en la lista.
 2. **Dado** que el usuario está creando un producto, **cuando** deja el nombre o el código en blanco, **entonces** el sistema impide guardar y explica qué campos son obligatorios.
 3. **Dado** que ya existe un producto con un código determinado, **cuando** el usuario intenta crear otro con el mismo código (sin distinguir mayúsculas/minúsculas), **entonces** el sistema impide guardar e indica que el código ya está en uso.
-4. **Dado** que el usuario completa datos opcionales de identidad y contacto (identificación fiscal, correo, teléfono, dirección), **cuando** guarda, **entonces** los valores se persisten y quedan disponibles para consulta y búsqueda.
-5. **Dado** que el usuario introduce un correo electrónico con formato inválido, **cuando** guarda, **entonces** el sistema rechaza el guardado y explica que el correo no es válido.
+4. **Dado** que el usuario completa datos opcionales de inventario (categoría, unidad de medida, descripción), **cuando** guarda, **entonces** los valores se persisten y quedan disponibles para consulta y búsqueda.
+5. **Dado** que el usuario deja la unidad de medida en blanco, **cuando** guarda, **entonces** el producto se guarda sin unidad; si la completa, solo se admiten los valores de la lista fija definida en la configuración del módulo (p. ej., Unidad, Kg, L, Caja), no texto libre.
 6. **Dado** que el usuario clasifica el producto, **cuando** selecciona una categoría, **entonces** elige entre los valores definidos en la configuración (p. ej., General, Materia prima, Producto terminado, Insumo), no texto libre.
-7. **Dado** que el usuario completa descripción, fecha objetivo, límite de crédito o condiciones de pago, **cuando** guarda, **entonces** esos datos opcionales se persisten con el producto; la fecha objetivo debe ser una fecha de calendario válida y el límite de crédito, un número no negativo.
+7. **Dado** que el usuario completa la descripción, **cuando** guarda, **entonces** el texto opcional se persiste con el producto y se muestra escapado al renderizarlo.
 8. **Dado** que el usuario define un stock mínimo, **cuando** introduce un entero no negativo o lo deja vacío, **entonces** el valor se guarda o queda sin mínimo; una cantidad negativa o no entera se rechaza con una explicación.
 9. **Dado** que la configuración declara campos personalizados para productos, **cuando** el usuario los completa, **entonces** se renderizan con el tipo correspondiente, se validan (incluidos los obligatorios) y se guardan con el producto.
 10. **Dado** que el usuario ingresa texto con HTML o scripts en un campo, **cuando** guarda y el producto se muestra, **entonces** el contenido se escapa y no se ejecuta.
@@ -75,8 +82,7 @@ Como encargado de bodega, quiero crear productos con su identidad, contacto, cla
 Datos involucrados (para el MER y data-model.md):
 - Tabla/entidad: Producto (Entity del módulo base)
 - Campos: id y entity_id (autogenerados), nombre (obligatorio), código (obligatorio, único),
-  identificación fiscal, correo, teléfono, dirección, categoría, descripción, fecha objetivo,
-  límite de crédito, condiciones de pago, stock mínimo y campos personalizados (opcionales según configuración), createdAt y updatedAt
+  categoría, unidad de medida, descripción, stock mínimo y campos personalizados (opcionales según configuración), createdAt y updatedAt
 - Relación: un Producto tiene cero o más Documentos, Lotes y Movimientos de inventario; al eliminar un producto sin movimientos se eliminan en cascada sus Documentos y Lotes, y la eliminación se bloquea si tiene Movimientos (HU2, HU4, HU6, HU10)
 
 Decisión de datos y justificación:
@@ -92,7 +98,7 @@ Decisión de datos y justificación:
 Riesgos de datos:
 - Contenido malicioso (XSS) → mitigado con escape de HTML al renderizar.
 - Datos duplicados o incompletos → mitigados con validaciones de obligatoriedad y unicidad.
-- Correos o fechas inválidas → mitigados con validación de formato antes de guardar.
+- Valores arbitrarios de unidad de medida → mitigados con una lista fija provista por la configuración del módulo.
 - Datos reales sensibles en localStorage → usar solo datos ficticios en el MVP.
 
 ---
@@ -192,6 +198,7 @@ Como encargado de bodega, quiero crear, editar y desactivar las bodegas donde se
 8. **Dada** una bodega desactivada, **cuando** el usuario la vuelve a activar, **entonces** queda disponible de nuevo para registrar movimientos sin necesidad de crear otra bodega.
 9. **Dado** que el encargado llega a la pantalla de bodegas desde la barra lateral, **cuando** la pantalla se abre, **entonces** ve la lista de bodegas con su código, nombre y estado (activa o desactivada) de un vistazo.
 10. **Dada** una bodega con reservas activas, **cuando** el usuario intenta desactivarla, **entonces** el sistema lo impide e indica que primero debe liberar o consumir esas reservas (HU15).
+11. **Dado** que el encargado consulta el detalle de una bodega, **cuando** abre el detalle desde la lista, **entonces** ve los datos de la bodega (código, nombre, dirección, estado) y la tabla de productos con saldo en esa bodega —calculado como la suma de sus movimientos— con la marca de «stock bajo» cuando el saldo de la bodega es menor que el stock mínimo del producto, un enlace al detalle de cada producto y un estado vacío cuando ningún producto tiene saldo; el saldo se muestra en modo solo lectura.
 
 ---
 
@@ -334,7 +341,7 @@ Como usuario de negocio, quiero crear y organizar los documentos de logística j
 
 ### Historia de Usuario 11 - Buscar productos (entidades) en una pantalla dedicada (Prioridad: P2)
 
-Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar productos (entidades) por SKU (código), nombre, categoría, descripción o fecha objetivo sin que los formularios de edición saturen la vista.
+Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar productos (entidades) por SKU (código), nombre, categoría, descripción o unidad de medida sin que los formularios de edición saturen la vista.
 
 **Por qué esta prioridad**: La recuperación rápida es valiosa cuando el catálogo de productos crece, y una pantalla separada mantiene enfocada la experiencia de gestión, pero la búsqueda no es necesaria para la gestión básica.
 
@@ -342,7 +349,7 @@ Como encargado de bodega, quiero una pantalla de búsqueda dedicada para ubicar 
 
 **Escenarios de Aceptación**:
 
-1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente con el SKU (código), nombre, categoría, descripción o fecha objetivo, **entonces** solo se muestran los productos coincidentes.
+1. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** introduce un término coincidente con el SKU (código), nombre, categoría, descripción o unidad de medida, **entonces** solo se muestran los productos coincidentes.
 2. **Dada** una búsqueda sin coincidencias, **cuando** el usuario envía la búsqueda, **entonces** se muestra un estado vacío claro y puede volver a intentarlo.
 3. **Dados** 500 o más productos almacenados, **cuando** el usuario busca desde la pantalla de búsqueda, **entonces** los resultados aparecen con prontitud sin retraso perceptible.
 4. **Dado** que el usuario está en la pantalla de búsqueda, **cuando** activa el botón Panel en la barra lateral, **entonces** vuelve al panel de inicio.
@@ -569,7 +576,7 @@ Como usuario de negocio, quiero iniciar sesión con mi usuario y contraseña ant
 - ¿Qué ocurre cuando un usuario intenta guardar una entidad sin nombre o código obligatorio?
 - ¿Cómo gestiona el sistema una búsqueda que no devuelve coincidencias?
 - ¿Qué ocurre si un usuario intenta editar o eliminar una entidad que ya no existe?
-- ¿Qué ocurre cuando un usuario introduce una fecha objetivo que no es una fecha de calendario válida?
+- ¿Qué ocurre cuando el detalle de una bodega no tiene productos con saldo?
 - ¿Qué ocurre con los documentos de una entidad cuando esta se elimina?
 - ¿Qué ocurre cuando un usuario introduce una fecha final anterior a la fecha inicial en un documento?
 - ¿Qué ocurre cuando la configuración declara un campo personalizado cuya clave choca con un nombre de campo base?
@@ -622,7 +629,7 @@ Como usuario de negocio, quiero iniciar sesión con mi usuario y contraseña ant
 - **FR-017**: La pantalla de gestión DEBE proporcionar la funcionalidad de crear, editar y eliminar entidades.
 - **FR-018**: La pantalla de gestión DEBE proporcionar la funcionalidad de crear, editar y eliminar documentos.
 - **FR-019**: El sistema DEBE navegar a una pantalla de búsqueda dedicada cuando se selecciona el botón Buscar en la barra lateral.
-- **FR-020**: La pantalla de búsqueda DEBE permitir buscar entidades por nombre, código, categoría, descripción o fecha objetivo.
+- **FR-020**: La pantalla de búsqueda DEBE permitir buscar entidades por nombre, código, categoría, descripción o unidad de medida.
 - **FR-021**: La pantalla de búsqueda DEBE ser accesible tanto desde la barra lateral como desde la acción rápida de buscar registros del panel.
 - **FR-022**: El sistema DEBE mantener los datos de entidades y documentos intactos y consistentes durante la navegación entre pantallas.
 - **FR-023**: El sistema DEBE cargar la configuración del módulo al arrancar y aplicarla en todas las pantallas.
@@ -665,6 +672,8 @@ Como usuario de negocio, quiero iniciar sesión con mi usuario y contraseña ant
 - **FR-060**: El sistema DEBE persistir la sesión iniciada en localStorage hasta que el usuario cierre sesión, sin perder datos al navegar entre pantallas ni al recargar el navegador.
 - **FR-061**: El sistema DEBE ofrecer un cierre de sesión que elimine únicamente el indicador de sesión, regrese a la pantalla de login y conserve intactos todos los datos almacenados.
 - **FR-062**: En el primer arranque, el sistema DEBE crear un usuario admin por defecto con credenciales documentadas cuando no exista ningún usuario registrado.
+- **FR-063**: La pantalla de detalle de bodega DEBE mostrar los productos con saldo en esa bodega, calculado como la suma de sus movimientos, con su marca de stock bajo cuando el saldo de la bodega sea menor que el stock mínimo del producto, un enlace al detalle de cada producto y un estado vacío cuando ninguno tiene saldo; el saldo NO DEBE ser editable.
+- **FR-064**: El formulario de producto DEBE limitar la unidad de medida a los valores de la lista fija definida en la configuración del módulo, sin admitir texto libre.
 
 ### Requisitos de Extensibilidad *(obligaciones del módulo base)*
 
@@ -678,7 +687,7 @@ Los módulos personalizados construidos sobre esta base DEBEN poder:
 
 ### Entidades Clave *(incluir si la funcionalidad implica datos)*
 
-- **Entidad**: Un registro de datos maestros gestionado por el módulo, que incluye su nombre, código de negocio, detalles descriptivos, categoría de clasificación, una fecha objetivo opcional y un entity_id autogenerado. Los módulos personalizados definen qué representa una Entidad en el mundo real (p. ej., cliente, producto, activo).
+- **Entidad**: Un registro de datos maestros gestionado por el módulo, que incluye su nombre, código de negocio, detalles descriptivos, categoría de clasificación, unidad de medida opcional, stock mínimo opcional y un entity_id autogenerado. Los módulos personalizados definen qué representa una Entidad en el mundo real (p. ej., cliente, producto, activo).
 - **Documento**: Detalles transaccionales adjuntos a una entidad, vinculados a ella por el entity_id de la entidad. Los módulos personalizados definen qué representa un Documento (p. ej., pedido, factura, contrato).
 - **ModuleConfig**: El objeto de adaptación cargado al arrancar que define el nombre del módulo, las etiquetas de terminología, las definiciones de campos personalizados y el ciclo de vida de estados de documentos. Consulte data-model.md para su forma completa.
 - **Movimiento de traslado**: Dos movimientos de inventario vinculados por el mismo documento de traslado —tramo de salida en el almacén de origen y tramo de entrada en el almacén de destino— que se guardan juntos; el saldo de cada almacén se calcula como la suma de sus movimientos, sin excepciones en el motor de saldos.

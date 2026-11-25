@@ -19,11 +19,11 @@ La aplicación exige iniciar sesión antes de mostrar el espacio de trabajo (HU 
 
 Para que la implementación muestre datos desde el arranque, en el primer arranque (cuando `localStorage` aún no contiene productos) se siembran tres productos de supermercado:
 
-| Producto | Código | Categoría |
-|---|---|---|
-| Arroz Blanco 1 kg | `AR-1001` | Producto terminado |
-| Leche Entera 1 L | `LE-1002` | Producto terminado |
-| Aceite Vegetal 900 ml | `AC-1003` | Producto terminado |
+| Producto | Código | Categoría | Unidad |
+|---|---|---|---|
+| Arroz Blanco 1 kg | `AR-1001` | Producto terminado | Kg |
+| Leche Entera 1 L | `LE-1002` | Producto terminado | L |
+| Aceite Vegetal 900 ml | `AC-1003` | Producto terminado | ml |
 
 - Aparecen en **Productos** y en las estadísticas del **Panel** con saldo 0 (sin bodega ni movimientos) y sin marca de "stock bajo" (no llevan stock mínimo).
 - La siembra es de **solo primer arranque**: si los elimina, no vuelven al recargar la página.
@@ -35,8 +35,8 @@ Para que la implementación muestre datos desde el arranque, en el primer arranq
 La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas y Buscar**.
 
 1. **Panel**: aterrice en el panel ERP y use un botón de acción rápida (nuevo producto, nuevo movimiento, áreas de gestión o búsqueda) o revise las tarjetas de estadísticas en vivo.
-2. **Productos**: cree un producto con nombre, código y categoría; complete opcionalmente identidad, contacto y stock mínimo. Edítelo desde la lista o elimínelo con confirmación si no tiene movimientos; un producto con movimientos no se puede eliminar. Desde el detalle del producto abra sus **documentos**, **lotes** y **kardex**.
-3. **Bodegas**: cree una bodega con código único (p. ej. `CENTRAL`). Desactívela en lugar de eliminarla si ya tiene movimientos.
+2. **Productos**: cree un producto con nombre y código, y complete opcionalmente categoría, unidad de medida (lista fija, p. ej. Kg, L, Caja), stock mínimo y descripción. El formulario no incluye campos de identificación ni de contacto (Clarifications 2026-11-23). Edítelo desde la lista o elimínelo con confirmación si no tiene movimientos; un producto con movimientos no se puede eliminar. Desde el detalle del producto abra sus **documentos**, **lotes** y **kardex**.
+3. **Bodegas**: cree una bodega con código único (p. ej. `CENTRAL`). Desactívela en lugar de eliminarla si ya tiene movimientos. Pulse **Ver detalle** para abrir la pantalla de la bodega con sus datos y la tabla de productos con saldo en ella (calculado desde los movimientos), con marca de "stock bajo" cuando el saldo de la bodega es menor que el stock mínimo y enlace al detalle de cada producto.
 4. **Movimientos**: registre una **entrada** (aumenta stock en una bodega), luego una **salida** (reduce stock; sugiere lote FEFO y bloquea saldo negativo). Los movimientos son inmutables: las correcciones se hacen con **ajustes** o **devoluciones**.
 5. **Lotes**: desde el detalle del producto cree un lote con número, saldo inicial en cero y fecha de vencimiento; el saldo se recalcula con sus movimientos y los vencidos se excluyen de las salidas.
 6. **Buscar**: escriba en la barra de búsqueda (ignora tildes y mayúsculas) y combine filtros de categoría, bodega y "stock bajo"; el detalle de producto se abre en modo solo lectura con retorno a los resultados.
@@ -51,6 +51,8 @@ La barra lateral ofrece cinco módulos: **Panel, Productos, Movimientos, Bodegas
 - Verifique que cerrar sesión regresa al login y que los registros siguen intactos al volver a entrar.
 
 - Verifique que los campos obligatorios muestran errores de validación (`aria-invalid` + mensaje asociado).
+- Verifique que el formulario de producto solo ofrece campos de inventario (nombre, código, categoría, unidad de medida, stock mínimo, descripción) y que la unidad se elige de la lista fija.
+- Verifique que el detalle de bodega lista únicamente los productos con saldo en esa bodega, con su marca de "stock bajo" y un estado vacío cuando ninguno tiene saldo; el saldo no es editable.
 - Verifique que una salida no puede dejar saldo negativo y que el mensaje indica el saldo disponible.
 - Verifique que un producto con código duplicado o una bodega con código repetido se rechazan.
 - Verifique que los resultados de búsqueda se actualizan a medida que el usuario escribe y que los scripts en nombres de producto se muestran como texto (XSS).

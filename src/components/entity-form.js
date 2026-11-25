@@ -7,19 +7,13 @@ import {
 const BASE_FIELDS = [
   { name: 'name', label: 'Nombre', type: 'text', required: true },
   { name: 'code', label: 'Código', type: 'text', required: true },
-  { name: 'taxId', label: 'Identificación fiscal', type: 'text' },
-  { name: 'email', label: 'Correo electrónico', type: 'email' },
-  { name: 'phone', label: 'Teléfono', type: 'text' },
-  { name: 'address', label: 'Dirección', type: 'text' },
-  { name: 'category', label: 'Categoría', type: 'select' },
-  { name: 'description', label: 'Descripción', type: 'textarea' },
-  { name: 'targetDate', label: 'Fecha objetivo', type: 'date' },
-  { name: 'creditLimit', label: 'Límite de crédito', type: 'number' },
+  { name: 'category', label: 'Categoría', type: 'select', optionsKey: 'categories' },
+  { name: 'unit', label: 'Unidad de medida', type: 'select', optionsKey: 'units' },
   { name: 'stockMin', label: 'Stock mínimo', type: 'number', step: '1' },
-  { name: 'paymentTerms', label: 'Condiciones de pago', type: 'text' },
+  { name: 'description', label: 'Descripción', type: 'textarea' },
 ];
 
-function buildField(spec, categories) {
+function buildField(spec, options) {
   const wrapper = document.createElement('div');
   wrapper.className = 'field';
 
@@ -42,7 +36,7 @@ function buildField(spec, categories) {
     blank.value = '';
     blank.textContent = '— Seleccione —';
     input.appendChild(blank);
-    for (const option of categories) {
+    for (const option of options) {
       const node = document.createElement('option');
       node.value = option;
       node.textContent = option;
@@ -74,16 +68,17 @@ function buildField(spec, categories) {
   return wrapper;
 }
 
-export function renderEntityForm(container, { categories = [], customFields = [], labels = {} }) {
+export function renderEntityForm(container, { categories = [], units = [], customFields = [], labels = {} }) {
   container.textContent = '';
   const form = document.createElement('form');
   form.id = 'entity-form';
   form.noValidate = true;
 
+  const optionLists = { categories, units };
   const grid = document.createElement('div');
   grid.className = 'form-grid';
   for (const spec of BASE_FIELDS) {
-    grid.appendChild(buildField(spec, categories));
+    grid.appendChild(buildField(spec, optionLists[spec.optionsKey] ?? []));
   }
   form.appendChild(grid);
 

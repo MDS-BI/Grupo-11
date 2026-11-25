@@ -15,7 +15,7 @@ Aplicación web de una sola página construida sobre el módulo base de un siste
 
 Este sistema gestiona el **stock** de productos de una organización. Para ello, implementa dos piezas centrales del modelo de datos base del ERP:
 
-- **Entidad `Producto`** — representa el dato maestro del inventario (artículo o producto), reutilizando la estructura de la entidad base (`Entity`) con sus campos de identidad, contacto y clasificación, extendida según las necesidades del dominio de logística.
+- **Entidad `Producto`** — representa el dato maestro del inventario (artículo o producto), reutilizando la estructura de la entidad base (`Entity`) con sus campos de inventario (nombre, código/SKU, categoría, unidad de medida con lista fija, stock mínimo y descripción), extendida según las necesidades del dominio de logística.
 - **Documento `Movimiento de Inventario`** — representa las transacciones que afectan el stock (entradas, salidas y ajustes), reutilizando la estructura del documento base (`Document`), con su vinculación obligatoria a un producto y su desglose de cantidades y montos; los traslados generan dos movimientos vinculados.
 
 El módulo incluye además **bodegas** (con código único y estado activo/inactivo), **lotes** con saldo y vencimiento (sugiere FEFO en las salidas), **documentos de soporte** (orden de compra y remisión) vinculados a los movimientos, **traslados** entre bodegas (dos movimientos vinculados con ciclo de estados) y **devoluciones** de salidas y traslados (motivo controlado, merma y ciclo Solicitada → Aprobada → Recibida en bodega → Cerrada). La especificación incluye además **reservas de stock** (que descuentan el disponible sin alterar el físico) y **tomas de inventario físico** con ajuste por diferencia; ambas están desglosadas en `tasks.md` y pendientes de implementación.
@@ -29,7 +29,7 @@ La aplicación se presenta como un espacio de trabajo ERP coherente:
 ### Flujos principales
 
 1. **Productos** (`Productos`): crear, editar y eliminar productos; desde el detalle se abren sus documentos, lotes y kardex.
-2. **Bodegas** (`Bodegas`): alta con código único; se desactivan en lugar de eliminarse si ya tienen movimientos.
+2. **Bodegas** (`Bodegas`): alta con código único; se desactivan en lugar de eliminarse si ya tienen movimientos. Cada fila ofrece **Ver detalle**: una pantalla con los datos de la bodega y la tabla de productos que tienen saldo en ella, calculado desde sus movimientos, con marca de "stock bajo" y enlace al detalle de cada producto.
 3. **Movimientos** (`Movimientos`): entradas (aumentan stock), salidas (reducen stock y sugieren lote FEFO), ajustes con dirección; los movimientos son inmutables y sus estados siguen un ciclo de vida (`Pendiente → … → Entregado` para salidas; cancelados nunca afectan stock).
 4. **Lotes**: se crean desde el detalle del producto con saldo inicial en cero; el saldo se calcula a partir de sus movimientos y los vencidos se excluyen de las salidas.
 5. **Búsqueda** (`Buscar`): filtros combinados por texto (ignora tildes/mayúsculas), categoría, bodega y "stock bajo"; el stock bajo se marca con badge y se evalúa sobre el disponible (físico menos reservas activas no vencidas).
@@ -40,7 +40,7 @@ Para más detalles sobre la estructura de datos (entidades, documentos, almacene
 
 ### Datos de demostración
 
-En el primer arranque (cuando `localStorage` aún no contiene productos) la aplicación siembra tres productos de supermercado para que la implementación muestre datos desde el arranque: **Arroz Blanco 1 kg** (`AR-1001`), **Leche Entera 1 L** (`LE-1002`) y **Aceite Vegetal 900ml** (`AC-1003`), todos con categoría `Producto terminado`, saldo 0 y sin stock mínimo. La siembra es de solo primer arranque: si los elimina, no vuelven al recargar. Vive en `src/seed.js` y se invoca desde `src/main.js`, por lo que la suite de pruebas no queda afectada (ver `specs/001-erp-base-module/quickstart.md`).
+En el primer arranque (cuando `localStorage` aún no contiene productos) la aplicación siembra tres productos de supermercado para que la implementación muestre datos desde el arranque: **Arroz Blanco 1 kg** (`AR-1001`, unidad `Kg`), **Leche Entera 1 L** (`LE-1002`, unidad `L`) y **Aceite Vegetal 900ml** (`AC-1003`, unidad `ml`), todos con categoría `Producto terminado`, saldo 0 y sin stock mínimo. La siembra es de solo primer arranque: si los elimina, no vuelven al recargar. Vive en `src/seed.js` y se invoca desde `src/main.js`, por lo que la suite de pruebas no queda afectada (ver `specs/001-erp-base-module/quickstart.md`).
 
 ## Estado Actual y Próximos Pasos
 

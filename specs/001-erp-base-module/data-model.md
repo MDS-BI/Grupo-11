@@ -2,23 +2,17 @@
 
 ## Entidad: Entity (registro de datos maestros)
 
-Representa el dato maestro central del módulo (p. ej., cliente, proveedor, artículo) con su identidad fiscal, contacto y condiciones comerciales.
+Representa el dato maestro central del módulo (p. ej., artículo, producto) con su identidad de inventario: nombre, código, clasificación, unidad de medida y stock mínimo.
 
 | Campo | Tipo | Descripción | Restricciones |
 |---|---|---|---|
 | id | string | Identificador interno único del registro de entidad | Obligatorio, generado automáticamente |
 | entity_id | string | Identificador público usado para vincular documentos a esta entidad | Obligatorio, generado automáticamente, único |
-| name | string | Nombre o razón social de la entidad | Obligatorio, no vacío |
-| code | string | Código o clave de negocio que identifica la entidad | Obligatorio, no vacío |
-| taxId | string | Identificación fiscal de la entidad (p. ej., RFC, NIT, CUIT) | Opcional; se almacena recortada cuando se proporciona |
-| email | string | Correo electrónico principal de contacto | Opcional; debe tener formato de correo válido si se proporciona |
-| phone | string | Teléfono de contacto | Opcional |
-| address | string | Dirección fiscal o comercial | Opcional |
+| name | string | Nombre del producto o entidad | Obligatorio, no vacío |
+| code | string | Código o SKU que identifica la entidad | Obligatorio, no vacío |
 | category | string | Clasificación opcional como tipo, grupo o clase | Opcional |
+| unit | string | Unidad de medida del producto (p. ej., Unidad, Kg, L, Caja) | Opcional; debe pertenecer a la lista fija definida en la configuración del módulo (FR-064) |
 | description | string | Descripción corta o notas | Opcional |
-| targetDate | string | Fecha objetivo opcional en formato YYYY-MM-DD; los módulos personalizados definen su significado (p. ej., fecha de vencimiento, fecha de revisión) | Opcional, debe ser una fecha de calendario válida si se proporciona |
-| creditLimit | number | Límite de crédito extendido a la entidad en la moneda configurada | Opcional, debe ser un número no negativo |
-| paymentTerms | string | Condiciones de pago acordadas (p. ej., contado, neto 30) | Opcional |
 | stockMin | number | Stock mínimo por producto para marcar "stock bajo" cuando el disponible total (físico menos reservas activas) queda por debajo (HU 9) | Opcional; debe ser un entero no negativo; vacío = sin mínimo |
 | createdAt | string | Marca de tiempo de cuándo se creó la entidad | Obligatorio |
 | updatedAt | string | Marca de tiempo de la última actualización de la entidad | Obligatorio |
@@ -27,11 +21,11 @@ Representa el dato maestro central del módulo (p. ej., cliente, proveedor, art�
 
 Para que la implementación muestre datos desde el arranque, el punto de entrada (`src/main.js`) siembra tres productos de supermercado mediante `src/seed.js`:
 
-| name | code | category | stockMin |
-|---|---|---|---|
-| Arroz Blanco 1 kg | AR-1001 | Producto terminado | vacío |
-| Leche Entera 1 L | LE-1002 | Producto terminado | vacío |
-| Aceite Vegetal 900 ml | AC-1003 | Producto terminado | vacío |
+| name | code | category | unit | stockMin |
+|---|---|---|---|---|
+| Arroz Blanco 1 kg | AR-1001 | Producto terminado | Kg | vacío |
+| Leche Entera 1 L | LE-1002 | Producto terminado | L | vacío |
+| Aceite Vegetal 900 ml | AC-1003 | Producto terminado | ml | vacío |
 
 Reglas de la siembra:
 
@@ -52,15 +46,14 @@ Representa un documento transaccional vinculado a una entidad (p. ej., pedido, f
 | type | string | Tipo de documento: `orden-compra` o `remision` (HU 10) | Obligatorio; uno de los valores soportados por el módulo |
 | series | string | Serie del documento (p. ej., FAC, A, NV) que agrupa folios consecutivos | Opcional |
 | folio | number | Folio consecutivo que, junto con la serie, forma el número oficial del documento | Obligatorio, debe ser un entero positivo |
-| startDate | string | Fecha de inicio en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
-| endDate | string | Fecha de fin en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida, debe ser igual o posterior a startDate |
+| startDate | string | Fecha del documento (emisión) en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida |
+| endDate | string | Fecha de vigencia o cierre del documento en formato YYYY-MM-DD | Obligatorio, debe ser una fecha de calendario válida, debe ser igual o posterior a startDate |
 | quantity | number | Cantidad asociada al documento | Opcional, debe ser un entero positivo |
 | subtotal | number | Importe antes de descuentos e impuestos | Opcional, debe ser un número no negativo |
 | discount | number | Descuento aplicado sobre el subtotal | Opcional, debe ser un número no negativo y no puede superar el subtotal |
 | taxAmount | number | Impuesto calculado para el documento | Opcional, debe ser un número no negativo |
 | totalAmount | number | Importe total del documento en la moneda configurada | Opcional, debe ser un número no negativo |
 | currency | string | Código de moneda para los importes del documento (p. ej., MXN, USD, EUR) | Opcional |
-| paymentTerms | string | Condiciones de pago del documento (p. ej., contado, neto 30) | Opcional |
 | notes | string | Notas u observaciones libres del documento | Opcional |
 | status | string | Estado del documento como borrador, pendiente, aprobado o cancelado | Opcional |
 | createdAt | string | Marca de tiempo de cuándo se creó el documento | Obligatorio |
@@ -269,7 +262,7 @@ Una toma en estado `Confirmada` es inmutable: no se edita ni se anula. La anulac
 - La configuración se carga una vez al arrancar y se aplica en todas las pantallas.
 - Cuando la configuración está ausente, se aplican los valores predeterminados integrados del módulo Logística e Inventario: etiquetas Productos/Movimientos/Bodegas, sin campos personalizados, estado de texto libre, color de acento predeterminado.
 - Los valores inválidos o conflictivos deben informarse con claridad en lugar de fallar silenciosamente.
-- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `taxId`, `email`, `phone`, `address`, `category`, `description`, `targetDate`, `creditLimit`, `paymentTerms`, `stockMin`, `series`, `type`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`, `statusChangedAt`, `warehouse_id`, `movementDate`, `direction`, `transferId`, `leg`, `lot_id`, `reason`, `quantity_good`, `quantity_damaged`, `reservationId`, `countId`, `movementId`, `reference`, `expiresAt`, `releasedQuantity`, `count_id`, `systemQuantity`, `countedQuantity`, `startedAt`, `confirmedAt`, `adjustmentMovementId`).
+- Las claves de campos personalizados no deben chocar con los nombres de campos base (`id`, `entity_id`, `name`, `code`, `category`, `unit`, `description`, `stockMin`, `series`, `type`, `folio`, `startDate`, `endDate`, `quantity`, `subtotal`, `discount`, `taxAmount`, `totalAmount`, `currency`, `notes`, `status`, `statusChangedAt`, `warehouse_id`, `movementDate`, `direction`, `transferId`, `leg`, `lot_id`, `reason`, `quantity_good`, `quantity_damaged`, `reservationId`, `countId`, `movementId`, `reference`, `expiresAt`, `releasedQuantity`, `count_id`, `systemQuantity`, `countedQuantity`, `startedAt`, `confirmedAt`, `adjustmentMovementId`).
 - Los valores de campos personalizados se persisten junto a los campos base sin cambios de esquema en el almacenamiento.
 - Un ciclo de vida configurado reemplaza la entrada de estado de texto libre; sin uno, el estado permanece como texto libre.
 
@@ -279,12 +272,9 @@ Una toma en estado `Confirmada` es inmutable: no se edita ni se anula. La anulac
 
 - Una entidad debe incluir un nombre no vacío.
 - Una entidad debe incluir un código no vacío.
-- La identificación fiscal, teléfono, dirección, categoría, descripción y condiciones de pago son opcionales pero deben almacenarse como cadenas recortadas.
-- El correo electrónico es opcional pero, cuando está presente, debe tener formato de correo válido.
-- El límite de crédito es opcional pero, cuando está presente, debe ser un número no negativo.
-- La fecha objetivo es opcional pero, cuando está presente, debe ser una fecha de calendario válida en formato YYYY-MM-DD.
+- La categoría, la unidad de medida y la descripción son opcionales pero deben almacenarse como cadenas recortadas; la unidad de medida debe pertenecer a la lista fija definida en la configuración del módulo (FR-064).
 - Un entity_id debe generarse automáticamente y debe ser único entre todas las entidades.
-- El stock mínimo es opcional; cuando está presente debe ser un entero no negativo y se compara con el disponible total del producto (físico menos los saldos pendientes de reservas activas), no con el saldo de una bodega concreta.
+- El stock mínimo es opcional; cuando está presente debe ser un entero no negativo y se compara con el disponible total del producto (físico menos los saldos pendientes de reservas activas), no con el saldo de una bodega concreta. En el detalle de bodega, la marca de "stock bajo" se evalúa contra el saldo de esa bodega (FR-063).
 
 ### Documento
 

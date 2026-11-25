@@ -2,10 +2,10 @@
 
 **Entrada**: Documentos de diseño desde `/specs/001-erp-base-module/`
 **Prerrequisitos**: plan.md (obligatorio), spec.md (obligatorio para las historias de usuario), research.md, data-model.md, contracts/
-**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación — revocada por la sesión 2026-11-18 —, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia), `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible) y `Session 2026-11-18` (autenticación con contraseña: credenciales `admin/admin123`, botón de cerrar sesión en la barra superior, sin bloqueo de intentos fallidos, helper que siembra sesión en las pruebas existentes)
+**Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación — revocada por la sesión 2026-11-18 —, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia), `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible), `Session 2026-11-18` (autenticación con contraseña: credenciales `admin/admin123`, botón de cerrar sesión en la barra superior, sin bloqueo de intentos fallidos, helper que siembra sesión en las pruebas existentes) y `Session 2026-11-23 — cambio de alcance` (campos de producto de inventario con eliminación completa de los campos genéricos de plantilla, unidad de medida con lista fija, detalle de bodega como ruta propia con saldo calculado desde movimientos, revisión completa de textos de plantilla)
 **Ajustes tras /speckit.analyze**: añadidas T006 (pruebas de `module-config`, C1) y T024/T027 (reetiquetado FR-029/XR-002, E1)
-**Cambio activo (HU 17)**: tareas T106–T113 en la Fase 20; T091–T105 (US15/US16) quedan fuera de este alcance y siguen pendientes
-**Cambio activo (datos de demostración)**: tareas T114–T118 en la Fase 21
+**Cambio activo (cambio de alcance)**: tareas T119–T131 en la Fase 22; T091–T105 (US15/US16) quedan fuera de este alcance y siguen pendientes
+**Cambios completados**: HU 17 (Fase 20, T106–T113) y datos de demostración (Fase 21, T114–T118)
 
 **Pruebas**: incluidas por historia (Constitución II – Test-First); se ejecutan con `npm test` (Vitest + jsdom).
 
@@ -462,6 +462,40 @@
 
 ---
 
+## Fase 22: Cambio de alcance - campos de producto de inventario, detalle de bodega y limpieza de plantilla (Cambio activo)
+
+**Objetivo**: Reducir el formulario de producto a sus campos de inventario (eliminando por completo los campos genéricos de plantilla), añadir la pantalla de detalle de bodega con el stock de sus productos y depurar los textos heredados de la plantilla que no aplican a logística e inventario.
+
+**Prueba Independiente**: Un usuario crea un producto con nombre, código, categoría, unidad de medida (lista fija), stock mínimo y descripción sin rastro de identificación fiscal, correo, teléfono, crédito ni condiciones de pago; desde Bodegas abre el detalle de una bodega y ve la tabla de productos con su saldo calculado desde los movimientos, con marca de stock bajo y enlace al producto; la búsqueda ya no menciona dirección y los documentos muestran fechas con sentido logístico.
+
+**Alcance**: solo las tareas de esta fase; T091–T105 (US15/US16) siguen pendientes fuera de este cambio. Sin dependencias nuevas en `package.json`.
+
+### Pruebas del cambio
+
+- [X] T119 [P] Actualizar tests/integration/create-entity.test.js: retirar los escenarios de identificación fiscal, correo, teléfono, dirección, límite de crédito y condiciones de pago, y añadir la persistencia de la unidad de medida con valores de la lista fija (HU 1, Clarifications 2026-11-23)
+- [X] T120 [P] Actualizar tests/integration/edit-delete-entity.test.js y tests/unit/storage.test.js: retirar la validación y búsqueda de los campos eliminados, y añadir la validación de `unit` contra la lista fija en src/storage.js (FR-064)
+- [X] T121 [P] Añadir pruebas de integración del detalle de bodega (productos con saldo > 0 calculado desde movimientos, marca de stock bajo por saldo de la bodega, enlace al producto, estado vacío, saldo no editable) en tests/integration/warehouse-detail.test.js (FR-063)
+
+### Implementación del cambio
+
+- [X] T122 [P] Reemplazar BASE_FIELDS en src/components/entity-form.js por los campos de inventario (nombre, código, categoría, unidad de medida, stock mínimo, descripción) con la unidad como select de lista fija (HU 1, FR-064)
+- [X] T123 [P] Actualizar src/module-config.js: retirar `taxId`, `email`, `phone`, `address`, `targetDate`, `creditLimit` y `paymentTerms` de BASE_FIELD_KEYS, añadir `unit` y declarar la lista fija de unidades por defecto (FR-064)
+- [X] T124 [P] Crear src/components/warehouse-detail.js y la sección `view-warehouse` en index.html con los datos de la bodega y la tabla de productos con saldo (FR-063)
+- [X] T125 Limpiar src/storage.js: retirar los campos eliminados de ENTITY_OPTIONAL_STRINGS, validateEntity y searchEntities (incluidos los filtros `targetDateFrom`/`targetDateTo`), y validar `unit` contra la lista fija (FR-064)
+- [X] T126 Conectar el detalle de bodega en src/app.js (ruta `warehouse`, botón «Ver detalle» en src/components/warehouse-list.js, navegación desde la lista y enlace al detalle de cada producto) (FR-063, HU 5 escenario 11)
+- [X] T127 [P] Revisión completa de textos de plantilla: placeholder de búsqueda en src/components/search-bar.js, etiquetas de fechas de src/components/document-form.js y mostrar la unidad de medida en el detalle de producto en src/app.js
+- [X] T128 Añadir `unit` a los productos sembrados en src/seed.js y actualizar la tabla de datos de demostración en data-model.md/contracts/entity-storage.md si procede
+
+### Documentación y verificación
+
+- [X] T129 [P] Actualizar specs/001-erp-base-module/quickstart.md y README.md con los campos del producto, el detalle de bodega y los textos corregidos
+- [X] T130 Ejecutar la suite completa (`npm test`) y la compilación (`npm run build`) para verificar que no hay regresiones
+- [ ] T131 Ejecutar la validación manual del flujo (crear producto con los campos de inventario, abrir el detalle de bodega, buscar y revisar documentos) según specs/001-erp-base-module/quickstart.md
+
+**Punto de control**: El formulario de producto solo muestra campos de inventario, el detalle de bodega lista el stock de sus productos y no quedan textos genéricos de plantilla; la suite permanece en verde.
+
+---
+
 ## Dependencias y Orden de Ejecución
 
 ### Dependencias entre Fases
@@ -487,6 +521,7 @@
 - **Pulido (Fase 19)**: Depende de que todas las historias deseadas estén completas
 - **US17 (Fase 20)**: Depende de Fundacional (storage, app.js, shell) y de US13 (marco con barra superior); es la compuerta de acceso de todas las pantallas, así que T112 (helper de sesión para las pruebas existentes) debe ejecutarse junto con el cambio de compuerta de T110 para no dejar la suite en rojo
 - **Datos de demostración (Fase 21)**: Depende de Fundacional (US1/`addEntity`); es un ajuste menor independiente del resto de historias. T114 (pruebas) va antes que T115 (implementación) y T116 (entrada) va después de T115; T117 puede paralelizarse con T116 y T118 cierra la fase
+- **Cambio de alcance (Fase 22)**: Depende de Fundacional y de las fases ya completadas (HU 1, HU 5, HU 11, HU 10); es independiente de T091–T105. T119–T121 (pruebas) van antes que T122–T128 (implementación); T122, T123, T124 y T127 son paralelas entre sí (archivos distintos), T125 y T126 comparten `src/app.js`/`src/storage.js` y se integran con cuidado, y T129–T131 cierran la fase
 
 ### Dependencias entre Historias de Usuario
 

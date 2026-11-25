@@ -54,32 +54,26 @@ describe('Historia de Usuario 1 - crear y organizar productos', () => {
     expect(items[0].textContent).toContain('AC-001');
   });
 
-  it('persiste los campos de identidad y contacto introducidos en el formulario', () => {
+  it('persiste los campos de inventario introducidos en el formulario', () => {
     qs('name').value = 'Acme';
     qs('code').value = 'AC-001';
-    qs('taxId').value = 'RFC800101AB1';
-    qs('email').value = 'ventas@acme.mx';
-    qs('phone').value = '555-1234';
-    qs('address').value = 'Av. Reforma 100';
-    qs('creditLimit').value = '50000';
-    qs('paymentTerms').value = 'neto 30';
+    qs('category').value = 'Insumo';
+    qs('unit').value = 'Caja';
+    qs('stockMin').value = '10';
+    qs('description').value = 'Material de oficina';
     submitForm();
     const saved = loadEntities()[0];
-    expect(saved.taxId).toBe('RFC800101AB1');
-    expect(saved.email).toBe('ventas@acme.mx');
-    expect(saved.phone).toBe('555-1234');
-    expect(saved.address).toBe('Av. Reforma 100');
-    expect(saved.creditLimit).toBe(50000);
-    expect(saved.paymentTerms).toBe('neto 30');
+    expect(saved.category).toBe('Insumo');
+    expect(saved.unit).toBe('Caja');
+    expect(saved.stockMin).toBe(10);
+    expect(saved.description).toBe('Material de oficina');
   });
 
-  it('rechaza un correo mal formado con una explicación', () => {
-    qs('name').value = 'Acme';
-    qs('code').value = 'AC-001';
-    qs('email').value = 'no-es-correo';
-    submitForm();
-    expect(loadEntities().length).toBe(0);
-    expect(qs('error-email').textContent).toContain('correo electrónico');
+  it('no muestra los campos genéricos de plantilla en el formulario', () => {
+    for (const id of ['taxId', 'email', 'phone', 'address', 'targetDate', 'creditLimit', 'paymentTerms']) {
+      expect(qs(id)).toBeNull();
+    }
+    expect(qs('unit')).toBeTruthy();
   });
 
   it('bloquea el guardado con campos obligatorios en blanco y explica qué falta', () => {

@@ -96,8 +96,8 @@ export function renderDocumentForm(container, { customFields = [] } = {}) {
 
   grid.appendChild(buildField('document-series', 'Serie'));
   grid.appendChild(buildField('document-folio', 'Folio', { type: 'number', required: true }));
-  grid.appendChild(buildField('document-start-date', 'Fecha de inicio', { type: 'date', required: true }));
-  grid.appendChild(buildField('document-end-date', 'Fecha de fin', { type: 'date', required: true }));
+  grid.appendChild(buildField('document-start-date', 'Fecha del documento', { type: 'date', required: true }));
+  grid.appendChild(buildField('document-end-date', 'Fecha de vigencia', { type: 'date', required: true }));
   grid.appendChild(buildField('document-notes', 'Notas'));
 
   const statusField = document.createElement('div');

@@ -12,7 +12,7 @@ export function renderSearchBar(mount, { categories = [], warehouses = [] } = {}
   const input = document.createElement('input');
   input.type = 'search';
   input.id = 'search-input';
-  input.placeholder = 'SKU, nombre, categoría o dirección';
+  input.placeholder = 'SKU, nombre, categoría o descripción';
   field.append(label, input);
   panel.appendChild(field);
 
