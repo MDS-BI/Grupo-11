@@ -69,6 +69,8 @@ textarea {
 }
 
 .btn:focus-visible,
+.reset-data-btn:focus-visible,
+.logout-btn:focus-visible,
 .nav-module:focus-visible,
 .action-btn:focus-visible,
 input:focus-visible,
@@ -604,8 +606,15 @@ textarea:focus-visible {
 
 /* ---------- Inicio de sesión (HU 17) ---------- */
 
-.logout-btn {
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+
+.reset-data-btn,
+.logout-btn {
   padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -616,6 +625,7 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
+.reset-data-btn:hover,
 .logout-btn:hover {
   background: var(--danger-bg);
   border-color: var(--danger);

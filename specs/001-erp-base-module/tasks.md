@@ -5,7 +5,7 @@
 **Clarificaciones aplicadas**: spec.md → `Clarifications / Session 2026-11-03` (UI Logística por defecto, 5 botones de barra lateral, sin autenticación — revocada por la sesión 2026-11-18 —, traslado = dos movimientos vinculados, `status` en el movimiento y Devolución como entidad propia), `Session 2026-11-16` (el disponible es físico menos reservas activas; la toma cuenta el físico y no altera reservas; el stock mínimo se evalúa sobre el disponible), `Session 2026-11-18` (autenticación con contraseña: credenciales `admin/admin123`, botón de cerrar sesión en la barra superior, sin bloqueo de intentos fallidos, helper que siembra sesión en las pruebas existentes) y `Session 2026-11-23 — cambio de alcance` (campos de producto de inventario con eliminación completa de los campos genéricos de plantilla, unidad de medida con lista fija, detalle de bodega como ruta propia con saldo calculado desde movimientos, revisión completa de textos de plantilla)
 **Ajustes tras /speckit.analyze**: añadidas T006 (pruebas de `module-config`, C1) y T024/T027 (reetiquetado FR-029/XR-002, E1)
 **Cambio activo (cambio de alcance)**: tareas T119–T131 en la Fase 22; T091–T105 (US15/US16) quedan fuera de este alcance y siguen pendientes
-**Cambios completados**: HU 17 (Fase 20, T106–T113) y datos de demostración (Fase 21, T114–T118)
+**Cambios completados**: HU 17 (Fase 20, T106–T113), datos de demostración (Fase 21, T114–T118) y restablecer datos locales (Fase 23, T132–T138)
 
 **Pruebas**: incluidas por historia (Constitución II – Test-First); se ejecutan con `npm test` (Vitest + jsdom).
 
@@ -496,6 +496,34 @@
 
 ---
 
+## Fase 23: Restablecer datos locales desde la barra superior (Ajuste menor)
+
+**Objetivo**: Permitir volver al estado inicial de datos (siembra de demostración) sin abrir las herramientas del navegador, mediante un botón en la barra superior.
+
+**Prueba Independiente**: Un usuario con sesión iniciada pulsa «Restablecer datos» en la barra superior, acepta la confirmación y el panel muestra de nuevo los productos de demostración mientras desaparecen los productos, bodegas y documentos creados por él; si cancela la confirmación nada cambia; su sesión y sus usuarios siguen intactos y la pantalla de inicio de sesión no ofrece el botón.
+
+**Alcance**: solo las tareas de esta fase; T091–T105 (US15/US16) siguen pendientes fuera de este cambio. Sin dependencias nuevas en `package.json`.
+
+### Pruebas del restablecimiento
+
+- [X] T132 [P] [US13] Añadir pruebas de integración del botón (visibilidad en la barra superior, ausencia en la pantalla de login, limpieza de datos de negocio con conservación de sesión y repoblado de la siembra, y cancelación sin efectos) en tests/integration/reset-data.test.js
+
+### Implementación del restablecimiento
+
+- [X] T133 [P] [US13] Añadir el botón `reset-data-btn` en la barra superior de index.html dentro del contenedor `.topbar-actions`, con sus estilos y estado `:focus-visible` en src/styles.css
+- [X] T134 [US13] Expander `initShell` en src/components/shell.js con el callback `onResetData` que muestra el botón (oculto en la pantalla de login)
+- [X] T135 [US17] Conectar el restablecimiento en src/app.js: confirmación, `clearAll()`, `seedDemoProducts()` y refresco de la vista actual, conservando sesión y usuarios
+
+### Documentación y verificación
+
+- [X] T136 [P] Documentar el botón en README.md (sección «Datos de demostración»)
+- [X] T137 Ejecutar `npm run lint`, la suite completa (`npm test`) y la compilación (`npm run build`) para verificar que no hay regresiones
+- [ ] T138 Ejecutar la validación manual del flujo (crear datos propios, restablecer, cancelar y comprobar que la sesión persiste) según specs/001-erp-base-module/quickstart.md
+
+**Punto de control**: El botón «Restablecer datos» devuelve la aplicación al estado de demostración conservando la sesión y los usuarios; la suite permanece en verde.
+
+---
+
 ## Dependencias y Orden de Ejecución
 
 ### Dependencias entre Fases
@@ -522,6 +550,7 @@
 - **US17 (Fase 20)**: Depende de Fundacional (storage, app.js, shell) y de US13 (marco con barra superior); es la compuerta de acceso de todas las pantallas, así que T112 (helper de sesión para las pruebas existentes) debe ejecutarse junto con el cambio de compuerta de T110 para no dejar la suite en rojo
 - **Datos de demostración (Fase 21)**: Depende de Fundacional (US1/`addEntity`); es un ajuste menor independiente del resto de historias. T114 (pruebas) va antes que T115 (implementación) y T116 (entrada) va después de T115; T117 puede paralelizarse con T116 y T118 cierra la fase
 - **Cambio de alcance (Fase 22)**: Depende de Fundacional y de las fases ya completadas (HU 1, HU 5, HU 11, HU 10); es independiente de T091–T105. T119–T121 (pruebas) van antes que T122–T128 (implementación); T122, T123, T124 y T127 son paralelas entre sí (archivos distintos), T125 y T126 comparten `src/app.js`/`src/storage.js` y se integran con cuidado, y T129–T131 cierran la fase
+- **Restablecer datos (Fase 23)**: Depende de Fundacional, de US13 (barra superior), de US17 (botón de cerrar sesión en la misma barra) y de la Fase 21 (siembra a repoblar); es un ajuste menor independiente del resto de historias. T132 (pruebas) va antes que T133–T135 (implementación) y T136–T138 cierran la fase
 
 ### Dependencias entre Historias de Usuario
 

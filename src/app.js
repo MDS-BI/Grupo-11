@@ -44,7 +44,9 @@ import {
   loadReturns,
   updateReturnStatus,
   validateReturn,
+  clearAll,
 } from './storage.js';
+import { seedDemoProducts } from './seed.js';
 import { renderDashboard } from './components/dashboard.js';
 import {
   renderEntityForm,
@@ -1656,6 +1658,14 @@ function enterWorkspace(root) {
     onLogout: () => {
       logout();
       showLoginGate(root);
+    },
+    onResetData: () => {
+      const message =
+        '¿Restablecer los datos locales? Se eliminarán productos, documentos, bodegas, lotes, movimientos, traslados y devoluciones, y volverán los productos de demostración. Tu sesión se conservará. Esta acción no se puede deshacer.';
+      if (!confirm(message)) return;
+      clearAll();
+      seedDemoProducts();
+      refreshCurrentView();
     },
   });
   navigate('dashboard');

@@ -40,7 +40,7 @@ Para más detalles sobre la estructura de datos (entidades, documentos, almacene
 
 ### Datos de demostración
 
-En el primer arranque (cuando `localStorage` aún no contiene productos) la aplicación siembra tres productos de supermercado para que la implementación muestre datos desde el arranque: **Arroz Blanco 1 kg** (`AR-1001`, unidad `Kg`), **Leche Entera 1 L** (`LE-1002`, unidad `L`) y **Aceite Vegetal 900ml** (`AC-1003`, unidad `ml`), todos con categoría `Producto terminado`, saldo 0 y sin stock mínimo. La siembra es de solo primer arranque: si los elimina, no vuelven al recargar. Vive en `src/seed.js` y se invoca desde `src/main.js`, por lo que la suite de pruebas no queda afectada (ver `specs/001-erp-base-module/quickstart.md`).
+En el primer arranque (cuando `localStorage` aún no contiene productos) la aplicación siembra tres productos de supermercado para que la implementación muestre datos desde el arranque: **Arroz Blanco 1 kg** (`AR-1001`, unidad `Kg`), **Leche Entera 1 L** (`LE-1002`, unidad `L`) y **Aceite Vegetal 900ml** (`AC-1003`, unidad `ml`), todos con categoría `Producto terminado`, saldo 0 y sin stock mínimo. La siembra es de solo primer arranque: si los elimina, no vuelven al recargar. Vive en `src/seed.js` y se invoca desde `src/main.js`, por lo que la suite de pruebas no queda afectada (ver `specs/001-erp-base-module/quickstart.md`). Para volver al estado inicial desde la interfaz está el botón **Restablecer datos** de la barra superior: tras confirmar, borra los datos de negocio del `localStorage` (conserva la sesión y los usuarios), vuelve a sembrar los productos de demostración y refresca la vista actual.
 
 ## Estado Actual y Próximos Pasos
 

@@ -50,7 +50,7 @@ const NAV_LABEL_IDS = {
   search: 'nav-search-label',
 };
 
-export function initShell({ onNavigate, onLogout } = {}) {
+export function initShell({ onNavigate, onLogout, onResetData } = {}) {
   const config = getActiveConfig();
 
   const brandName = document.getElementById('brand-name');
@@ -67,6 +67,14 @@ export function initShell({ onNavigate, onLogout } = {}) {
     logoutBtn.hidden = false;
     logoutBtn.onclick = () => {
       if (onLogout) onLogout();
+    };
+  }
+
+  const resetBtn = document.getElementById('reset-data-btn');
+  if (resetBtn) {
+    resetBtn.hidden = false;
+    resetBtn.onclick = () => {
+      if (onResetData) onResetData();
     };
   }
 
